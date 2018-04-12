@@ -12,7 +12,7 @@ var flagBaud int
 
 func init() {
 	flag.StringVar(&flagDevice, "device", "/dev/ttyS0", "serial port to use")
-	flag.IntVar(&flagBaud, "baud", 9600, "baud rate (WT521's facotry default is 1200 but it should be reconfigured to 9600)")
+	flag.IntVar(&flagBaud, "baud", 1200, "baud rate (WT521's factory default is 1200)")
 }
 
 func openSerialPort() *serial.Port {
