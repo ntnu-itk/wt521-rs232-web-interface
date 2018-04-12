@@ -19,3 +19,6 @@ Usage of wt521-rs232-web-interface:
     	port to open for HTTP server (default 8080)
 
 ```
+
+## Credits
+Cheers to Wikimedia user [El Grafo](https://commons.wikimedia.org/wiki/User:El_Grafo) for making the [compass SVG](https://en.wiktionary.org/wiki/File:Compass-icon_bb_NEbE.svg) and for dedicating it to the public domain.
