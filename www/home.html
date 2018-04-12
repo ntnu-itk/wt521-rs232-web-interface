@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style type="text/css">
+  #compass {
+    display: block;
+    position: relative;
+  }
+  #compass img {
+    max-width: 32rem;
+    position: absolute;
+    left: 0;
+    top: 0;
+  }
+  #arrow {
+    transform: rotate(0deg);
+  }
+  </style>
+  <script type="text/javascript">
+    function refresh(){
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET", "/json");
+      xhr.onload = updateBody;
+      xhr.send();
+      return xhr;
+    }
+
+    function updateBody(response){
+      var data = JSON.parse(response.target.response)
+      console.log(data)
+      var arrow = document.getElementById("arrow")
+      arrow.style.transform = "rotate(" + data.angle + "deg)"
+
+      var speedIndicator = document.getElementById("speedIndicator")
+      speedIndicator.innerHTML = data.speed
+
+      var timeIndicator = document.getElementById("timeIndicator")
+      var split = data.updated.split(" ")
+      timeIndicator.innerHTML = "" + split[0] + " " + split[1]
+    }
+
+    var refreshIntervalId = setInterval(refresh, 2000)
+  </script>
+</head>
+<body>
+  <h2>Speed: <span id="speedIndicator"></span></h2>
+  <h2>Last update: <span id="timeIndicator"></span></h2>
+  <div id="compass">
+    <img src="/compass.png">
+    <img id="arrow" src="/arrow.png">
+  </div>
+</body>
+</html>
