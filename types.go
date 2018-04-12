@@ -37,9 +37,22 @@ func (patch *StatePatch) String() string {
 }
 
 func SimpleTimeString(t time.Time) string {
-	str := t.String()
-	if len(str) < 40 {
-		return str
-	}
-	return str[:19] + str[29:40]
+	var (
+		date           string
+		time           string
+		unusedInt      int
+		timeZoneOffset string
+		timeZoneName   string
+	)
+
+	fmt.Sscanf(t.String(),
+		"%10s %8s.%d %s %s",
+		&date,
+		&time,
+		&unusedInt,
+		&timeZoneOffset,
+		&timeZoneName)
+
+	return fmt.Sprintf("%s %s %s %s",
+		date, time, timeZoneOffset, timeZoneName)
 }

@@ -3,8 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/tarm/serial"
 )
@@ -34,28 +36,39 @@ func httpServer(requestChannel RequestChannel, stateChannel StateChannel) error 
 		fmt.Fprint(w, jsonString)
 	})
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		requestChannel <- true
-		state := <-stateChannel
+		fileToServe := "www/" + r.URL.Path
+		fileToServe = strings.Replace(fileToServe, "..", ".", -1)
+		fileToServe = strings.Replace(fileToServe, "//", "/", -1)
 
-		jsonString := fmt.Sprintf(`<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8" />
-</head>
-<body>
-    <h1>Værinfo</h1>
-    Speed: %.1f
-    <br>
-    Angle: %d
-    <br>
-    Updated: "%s
-    <script>setTimeout('location.reload()', 1010)</script>`,
-			state.windSpeed,
-			state.windAngle,
-			SimpleTimeString(state.lastUpdated))
+		if r.URL.Path == "/" || r.URL.Path == "index.html" {
+			fileToServe = "www/home.html"
+		}
 
-		w.Header().Set("Content-Type", "text/html")
-		fmt.Fprint(w, jsonString)
+		content, err := ioutil.ReadFile(fileToServe)
+		if err != nil {
+			log.Printf("Error serving static file %s: %s", fileToServe, err)
+		}
+
+		log.Printf("%s => serve static file %s (length %d)", r.URL.Path, fileToServe, len(content))
+
+		filenameDotParts := strings.Split(fileToServe, ".")
+		if len(filenameDotParts) > 1 {
+			mimeType := "text/html"
+
+			switch filenameDotParts[1] {
+			case "js":
+				mimeType = "text/javascript"
+			case "css":
+				mimeType = "text/css"
+			case "svg":
+				mimeType = "image/svg+xml"
+			case "png":
+				mimeType = "image/png"
+			}
+
+			w.Header().Set("Content-Type", mimeType)
+		}
+		w.Write(content)
 	})
 	return http.ListenAndServe(fmt.Sprintf(":%d", flagPort), nil)
 }
