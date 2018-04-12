@@ -7,18 +7,18 @@ import (
 	"github.com/tarm/serial"
 )
 
-var flagName string
+var flagDevice string
 var flagBaud int
 
 func init() {
-	flag.StringVar(&flagName, "dev", "/dev/ttyS0", "serial port to use")
+	flag.StringVar(&flagDevice, "device", "/dev/ttyS0", "serial port to use")
 	flag.IntVar(&flagBaud, "baud", 9600, "baud rate (WT521's facotry default is 1200 but it should be reconfigured to 9600)")
 }
 
 func openSerialPort() *serial.Port {
 	serialPort, err := serial.OpenPort(
 		&serial.Config{
-			Name:     flagName,
+			Name:     flagDevice,
 			Baud:     flagBaud,
 			Parity:   serial.ParityNone,
 			StopBits: serial.Stop1,
