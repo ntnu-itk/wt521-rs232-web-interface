@@ -37,7 +37,7 @@ func serialMonitor(serialPort *serial.Port, patchChannel PatchChannel) {
 		patch.parse(serialPort)
 		select {
 		case <-patchChannel:
-			log.Println("Discarded a patch. The stateKeeper goroutine may have crashed.")
+			log.Println("Discarded a state patch. The stateKeeper goroutine may have failed.")
 		default:
 			//log.Println("No patch in queue")
 		}
