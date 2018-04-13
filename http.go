@@ -7,8 +7,6 @@ import (
 	"log"
 	"net/http"
 	"strings"
-
-	"github.com/tarm/serial"
 )
 
 var flagPort int
@@ -71,40 +69,4 @@ func httpServer(requestChannel RequestChannel, stateChannel StateChannel) error 
 		w.Write(content)
 	})
 	return http.ListenAndServe(fmt.Sprintf(":%d", flagPort), nil)
-}
-
-func (patch *StatePatch) parse(serialPort *serial.Port) error {
-	b := make([]byte, 500)
-	for b[0] != byte('$') {
-		serialPort.Read(b[0:1])
-	}
-
-	bytesRead := 0
-	for {
-		n, err := serialPort.Read(b[bytesRead:])
-		bytesRead += n
-		if err != nil {
-			log.Printf("Error while reading data bytes: %s", err)
-		}
-		if rune(b[bytesRead-1]) == '*' {
-			//log.Printf("Have read %d bytes: %s", bytesRead, b)
-			break
-		}
-		if bytesRead == cap(b) {
-			log.Printf("Warning: read the maximum of %d bytes into buffer but no delimiter found; bailing early. If this happens consistently, check if serial port is configured correctly.", bytesRead)
-			log.Printf("         our buffer contains this: %s", string(b))
-			break
-		}
-	}
-
-	n, err := fmt.Sscanf(string(b),
-		"WIMWV,%d,R,%f,M,A*",
-		&patch.windAngle,
-		&patch.windSpeed)
-
-	if n != 2 || err != nil {
-		log.Printf("Failed to extract data from buffer. Was able to parse %d of 2 numbers of interest with error '%s'", n, err)
-	}
-
-	return err
 }
