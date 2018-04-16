@@ -1,0 +1,27 @@
+#compass {
+    position: relative;
+}
+
+#compass img {
+    width: 32rem;
+    position: relative;
+    display: block;
+}
+
+#compass img:nth-child(2) {
+    top: -32rem;
+}
+
+#arrow {
+    transform: rotate(0deg);
+}
+
+#compass,
+svg {
+    display: inline-block;
+    float: left;
+    border: 1px solid black;
+
+    width: 32rem;
+    height: 32rem;
+}
