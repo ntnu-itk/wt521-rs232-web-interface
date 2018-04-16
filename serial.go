@@ -70,6 +70,10 @@ func (patch *StatePatch) parse(serialPort *serial.Port) error {
 		}
 	}
 
+	if flagVerbose {
+		log.Println(string(b))
+	}
+
 	n, err := fmt.Sscanf(string(b),
 		"WIMWV,%d,R,%f,M,A*",
 		&patch.windAngle,
