@@ -9,13 +9,21 @@ import (
 	"strings"
 )
 
+const (
+	homeHtmlFilePath = "www/home.html"
+)
+
 var flagPort int
 
 func init() {
 	flag.IntVar(&flagPort, "port", 8080, "port to open for HTTP server")
 }
 
-func httpServer(requestChannel RequestChannel, stateChannel StateChannel) error {
+func HttpServer(
+	requestChannel RequestChannel,
+	stateChannel StateChannel,
+	newStateChannel StateChannel,
+	newStateReceivedByAllChannel ReceivedByAllChannel) error {
 	http.HandleFunc("/json", func(w http.ResponseWriter, r *http.Request) {
 		requestChannel <- true
 		state := <-stateChannel
@@ -39,7 +47,7 @@ func httpServer(requestChannel RequestChannel, stateChannel StateChannel) error 
 		fileToServe = strings.Replace(fileToServe, "//", "/", -1)
 
 		if r.URL.Path == "/" || r.URL.Path == "index.html" {
-			fileToServe = "www/home.html"
+			fileToServe = homeHtmlFilePath
 		}
 
 		content, err := ioutil.ReadFile(fileToServe)
@@ -66,7 +74,22 @@ func httpServer(requestChannel RequestChannel, stateChannel StateChannel) error 
 
 			w.Header().Set("Content-Type", mimeType)
 		}
-		w.Write(content)
+
+		if fileToServe == homeHtmlFilePath {
+			w.Write([]byte(processHomeFile(string(content))))
+		} else {
+			w.Write(content)
+		}
 	})
 	return http.ListenAndServe(fmt.Sprintf(":%d", flagPort), nil)
+}
+
+func processHomeFile(content string) string {
+	var joinedSamples string
+
+	joinedSamples = "[0,0]"
+
+	resultat := strings.Replace(content, "__SAMPLES__", joinedSamples, -1)
+
+	return resultat
 }

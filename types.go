@@ -17,7 +17,9 @@ type PatchChannel chan StatePatch
 type StateChannel chan State
 type RequestChannel chan bool
 
-func (state *State) patch(patch StatePatch) {
+type ReceivedByAllChannel chan bool
+
+func (state *State) Patch(patch StatePatch) {
 	state.windSpeed = patch.windSpeed
 	state.windAngle = patch.windAngle
 	state.lastUpdated = time.Now()
