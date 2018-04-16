@@ -4,17 +4,29 @@
   <meta charset="utf-8">
   <style type="text/css">
   #compass {
-    display: block;
     position: relative;
   }
   #compass img {
-    max-width: 32rem;
-    position: absolute;
-    left: 0;
-    top: 0;
+    width: 32rem;
+    position: relative;
+    display: block;
+  }
+  #compass img:nth-child(2) {
+    top: -32rem;
   }
   #arrow {
     transform: rotate(0deg);
+  }
+  line:not(:last-of-type) {
+    opacity: 0.5;
+  }
+  #compass, svg {
+    display: inline-block;
+    float: left;
+    border: 1px solid black;
+
+    width: 32rem;
+    height: 32rem;
   }
   </style>
   <script type="text/javascript">
@@ -26,9 +38,13 @@
       return xhr;
     }
 
+    var lineQueue = []
     function updateBody(response){
       var data = JSON.parse(response.target.response)
       console.log(data)
+
+      lineQueue.push(makeLine(data.speed, data.angle))
+
       var arrow = document.getElementById("arrow")
       arrow.style.transform = "rotate(" + data.angle + "deg)"
 
@@ -40,7 +56,71 @@
       timeIndicator.innerHTML = "" + split[0] + " " + split[1]
     }
 
-    var refreshIntervalId = setInterval(refresh, 2000)
+    var bias = 0
+    function makeLine(speed, angle) {
+      if(this.prev === undefined) {
+        this.prev = { x: 0, y: 0 }
+      }
+      this.prev = { x: 0, y: 0 }
+
+      speed = Math.random() * 50.0
+      var scale = 2 * speed
+
+      bias += (Math.random() * 5) - 2.5
+      bias -= bias / 1000
+      angle += bias
+
+      angle -= 360/4
+
+      next = {
+        x: scale * Math.cos((2*Math.PI)/360*angle),
+        y: scale * Math.sin((2*Math.PI)/360*angle)
+      }
+
+      var line = document.createElementNS("http://www.w3.org/2000/svg", "line")
+      line.setAttribute("x1", this.prev.x)
+      line.setAttribute("y1", this.prev.y)
+      line.setAttribute("x2", next.x)
+      line.setAttribute("y2", next.y)
+
+      this.prev.x = next.x
+      this.prev.y = next.y
+
+      return line
+    }
+
+    function linePopper() {
+      if(lineQueue.length > 0) {
+        styleLines()
+
+        var line = lineQueue.pop()
+
+        var svgGraph = document.getElementById("fancyWindGraph")
+        svgGraph.append(line)
+      }
+    }
+
+    function styleLines() {
+      var fancyWindGraph = document.getElementById("fancyWindGraph")
+      var lines = fancyWindGraph.getElementsByTagName("line")
+      for (var i = 0; i < lines.length; i++) {
+        if (i < 1000) {
+          var r = 128
+          var g = 128
+          var b = 256
+          var a = theFormula(lines.length - i)
+          lines[i].setAttribute("stroke", "rgba(" + r + "," + g + "," + b + ", " + a + ")")
+        } else {
+          lines[i].remove()
+        }
+      }
+    }
+    function theFormula(x) {
+      return 0.2 * (1 - 0.12 * Math.log2(x + 1))
+    }
+
+    var refreshIntervalId = setInterval(refresh, 20)
+    var linePopperIntervalId = setInterval(linePopper, 5)
   </script>
 </head>
 <body>
@@ -50,6 +130,14 @@
   <div id="compass">
     <img src="/compass.png">
     <img id="arrow" src="/arrow.png">
+  </div>
+  <div>
+    <svg width="200" height="200" viewBox="0 0 200 200">
+      <line stroke="grey" x1="0" y1="100" x2="200" y2="100" />
+      <line stroke="grey" x1="100" y1="0" x2="100" y2="200" />
+      <circle stroke="grey" fill="none" cx="100" cy="100" r="100" />
+      <g id="fancyWindGraph" transform="translate(100,100)" stroke-width="10" stroke-linecap="round"></g>
+    </svg>
   </div>
 </body>
 </html>
