@@ -6,10 +6,14 @@ Web interface for the Vaisala WT521 using RS-232.
 # Download
 git clone https://github.com/asmundstavdahl/wt521-rs232-web-interface.git
 cd wt521-rs232-web-interface/
+
 # Compile
 go build
 # Run
 ./wt521-rs232-web-interface
+## OR
+# Compile and run
+make
 ```
 
 ## Usage
