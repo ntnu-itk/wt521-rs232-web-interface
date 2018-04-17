@@ -31,11 +31,11 @@ func openSerialPort() *serial.Port {
 	return serialPort
 }
 
-func serialMonitor(serialPort *serial.Port, patchChannel PatchChannel) {
+func SerialMonitor(serialPort *serial.Port, patchChannel PatchChannel) {
 	patch := &StatePatch{}
 
 	for true {
-		patch.parse(serialPort)
+		patch.Parse(serialPort)
 		select {
 		case <-patchChannel:
 			log.Println("Discarded a state patch. The stateKeeper goroutine may have failed.")
@@ -46,7 +46,7 @@ func serialMonitor(serialPort *serial.Port, patchChannel PatchChannel) {
 	}
 }
 
-func (patch *StatePatch) parse(serialPort *serial.Port) error {
+func (patch *StatePatch) Parse(serialPort *serial.Port) error {
 	b := make([]byte, 500)
 	for b[0] != byte('$') {
 		serialPort.Read(b[0:1])

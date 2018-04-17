@@ -1,28 +1,47 @@
 function refresh() {
     var xhr = new XMLHttpRequest();
-    xhr.open("GET", "/json");
-    xhr.onload = updateBody;
+    xhr.open("GET", "/json?wait");
+    xhr.onload = function(response) {
+        var state = JSON.parse(response.target.response)
+        console.log(state)
+
+        updateBody(state)
+
+        refreshIntervalId = setTimeout(refresh, 10)
+    }
+    xhr.onerror = function(a1, a2) {
+        console.log("xhr:onerror", a1, a2)
+        refreshIntervalId = setTimeout(refresh, 10)
+    }
+    xhr.ontimeout = function(a1, a2) {
+        console.log("xhr:ontimeout", a1, a2)
+        refreshIntervalId = setTimeout(refresh, 10)
+    }
+    xhr.timeout = 5000
     xhr.send();
     return xhr;
 }
 
 var lineQueue = []
 
-function updateBody(response) {
-    var data = JSON.parse(response.target.response)
-    console.log(data)
-
-    lineQueue.push(makeLine(data.speed, data.angle))
+function updateBody(state) {
+    lineQueue.push({
+        element: makeLine(state.speed, state.angle),
+        time: state.time
+    })
 
     var arrow = document.getElementById("arrow")
-    arrow.style.transform = "rotate(" + data.angle + "deg)"
+    arrow.style.transform = "rotate(" + state.angle + "deg)"
 
     var speedIndicator = document.getElementById("speedIndicator")
-    speedIndicator.innerHTML = data.speed
+    speedIndicator.innerHTML = "" + state.speed + " m/s"
 
     var timeIndicator = document.getElementById("timeIndicator")
-    var split = data.updated.split(" ")
+    var split = state.time.split(" ")
     timeIndicator.innerHTML = "" + split[0] + " " + split[1]
+
+    var directionTextIndicator = document.getElementById("directionTextIndicator")
+    directionTextIndicator.innerHTML = "Fra " + getDirectionText(state.angle)
 }
 
 var angleBias = 0
@@ -33,22 +52,12 @@ function makeLine(speed, angle) {
         this.prev = { x: 0, y: 0 }
     }
 
-    speed = 25.0
-    speedBias += (Math.random() * 2.5) - 1.25
-    speedBias -= speedBias / 1000
-    speed += speedBias
-    var scale = 2 * speed
-
-    angleBias += (Math.random() * 5) - 2.5
-    angleBias -= angleBias / 1000
-    angle += angleBias
-
     // Rotate the chart so that North is up
     angle -= 360 / 4
 
     next = {
-        x: scale * Math.cos((2 * Math.PI) / 360 * angle),
-        y: scale * Math.sin((2 * Math.PI) / 360 * angle)
+        x: speed * Math.cos((2 * Math.PI) / 360 * angle),
+        y: speed * Math.sin((2 * Math.PI) / 360 * angle)
     }
 
     var line = document.createElementNS("http://www.w3.org/2000/svg", "line")
@@ -63,14 +72,19 @@ function makeLine(speed, angle) {
     return line
 }
 
-function linePopper() {
+function drawNextLine(doStyleLines) {
     if (lineQueue.length > 0) {
-        styleLines()
+        if(doStyleLines !== false){
+            styleLines()
+        }
 
-        var line = lineQueue.pop()
+        var line = lineQueue.shift()
 
         var svgGraph = document.getElementById("fancyWindGraph")
-        svgGraph.append(line)
+        svgGraph.append(line.element)
+
+        var graphTimeIndicator = document.getElementById("graphTimeIndicator")
+        graphTimeIndicator.innerHTML = line.time
     }
 }
 
@@ -80,10 +94,12 @@ function styleLines() {
     // i=1 to skip first line that starts center
     for (var i = 1; i < lines.length; i++) {
         if (i < 1000) {
-            var r = 128 + (128 * (lines.length - i)/lines.length)
-            var g = 128 + (128 * (lines.length - i)/lines.length)
-            var b = 256 - (128 * (lines.length - i)/lines.length)
-            var a = theFormula((lines.length - i) / lines.length)
+            var progress = (lines.length - i) / lines.length
+            var colorFactor = theFormula(progress)
+            var r = 128 + (96 * (progress))
+            var g = 128 + (96 * (progress))
+            var b = 256 - (96 * (progress))
+            var a = 1 - Math.pow(progress, 0.05)
             lines[i].setAttribute("stroke", "rgba(" + r + "," + g + "," + b + ", " + a + ")")
         } else {
             lines[i].remove()
@@ -92,8 +108,46 @@ function styleLines() {
 }
 
 function theFormula(x) {
-    return Math.pow((1 - Math.log10(x)) / 2, 4)
+    //return Math.pow((1 - Math.log10(x)) / 2, 4)
+    return Math.pow(x, 0.75)
 }
 
-var refreshIntervalId = setInterval(refresh, 2000)
-var linePopperIntervalId = setInterval(linePopper, 20)
+var refreshIntervalId = setTimeout(refresh, 1000)
+var drawNextLineIntervalId = setInterval(drawNextLine, 5)
+
+function getDirectionText(angle) {
+    if(angle < 0 + (22.5 / 2))
+        return "nord"
+    else if(angle < 22.5 + (22.5 / 2))
+        return "nordnordøst"
+    else if(angle < 45 + (22.5 / 2))
+        return "nordøst"
+    else if(angle < 67.5 + (22.5 / 2))
+        return "østnordøst"
+    else if(angle < 90 + (22.5 / 2))
+        return "øst"
+    else if(angle < 112.5 + (22.5 / 2))
+        return "østsørøst"
+    else if(angle < 135 + (22.5 / 2))
+        return "sørøst"
+    else if(angle < 157.5 + (22.5 / 2))
+        return "sørsørøst"
+    else if(angle < 180 + (22.5 / 2))
+        return "sør"
+    else if(angle < 202.5 + (22.5 / 2))
+        return "sørsørvest"
+    else if(angle < 225 + (22.5 / 2))
+        return "sørvest"
+    else if(angle < 247.5 + (22.5 / 2))
+        return "vestsørvest"
+    else if(angle < 270 + (22.5 / 2))
+        return "vest"
+    else if(angle < 292.5 + (22.5 / 2))
+        return "vestnordvest"
+    else if(angle < 315 + (22.5 / 2))
+        return "nordvest"
+    else if(angle < 337.5 + (22.5 / 2))
+        return "nordnordvest"
+    else
+        return "nord"
+}

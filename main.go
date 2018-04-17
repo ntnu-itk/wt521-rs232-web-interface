@@ -6,6 +6,8 @@ import (
 )
 
 func main() {
+	flag.Parse()
+
 	patchChannel := make(PatchChannel, 1)
 	stateChannel := make(StateChannel, 0)
 	requestChannel := make(RequestChannel, 0)
@@ -13,12 +15,13 @@ func main() {
 	newStateBroadcastChannel := make(StateChannel, 0)
 	newStateReceivedByAllChannel := make(ReceivedByAllChannel, 0)
 
-	flag.Parse()
+	stateHistory := NewStateHistory()
 
 	serialPort := openSerialPort()
 
-	go stateKeeper(patchChannel, requestChannel, stateChannel, newStateBroadcastChannel, newStateReceivedByAllChannel)
-	go serialMonitor(serialPort, patchChannel)
+	go stateHistory.Maintain(newStateBroadcastChannel, newStateReceivedByAllChannel)
+	go StateKeeper(patchChannel, requestChannel, stateChannel, newStateBroadcastChannel, newStateReceivedByAllChannel)
+	go SerialMonitor(serialPort, patchChannel)
 
-	log.Fatal(httpServer(requestChannel, stateChannel, newStateBroadcastChannel, newStateReceivedByAllChannel))
+	log.Fatal(HttpServer(requestChannel, stateChannel, newStateBroadcastChannel, newStateReceivedByAllChannel, stateHistory))
 }

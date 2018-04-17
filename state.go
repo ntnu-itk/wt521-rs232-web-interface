@@ -1,6 +1,15 @@
 package main
 
-import "log"
+import (
+	"flag"
+	"log"
+)
+
+var flagHistoryLimit int
+
+func init() {
+	flag.IntVar(&flagHistoryLimit, "history", 1000, "max number of readings to keep in memory")
+}
 
 func StateKeeper(
 	patchChannel PatchChannel,
@@ -51,4 +60,18 @@ AllReceivedLoop:
 	}
 
 	return
+}
+
+// Updates the state history when new states occur
+func (stateHistory StateHistory) Maintain(newStateChannel StateChannel, receivedByAllChannel ReceivedByAllChannel) {
+	for {
+		state := <-newStateChannel
+		<-receivedByAllChannel
+
+		stateHistory.list.PushBack(state)
+
+		for stateHistory.list.Len() > stateHistory.maxLength {
+			stateHistory.list.Remove(stateHistory.list.Front())
+		}
+	}
 }

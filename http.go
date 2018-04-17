@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 )
 
 const (
@@ -14,24 +15,38 @@ const (
 )
 
 var flagPort int
+var flagPollTimeout int64
 
 func init() {
 	flag.IntVar(&flagPort, "port", 8080, "port to open for HTTP server")
+	flag.Int64Var(&flagPollTimeout, "poll-timeout", 5000, "seconds to wait for new state before defaulting to the previous one when client is long polling")
 }
 
 func HttpServer(
 	requestChannel RequestChannel,
 	stateChannel StateChannel,
 	newStateChannel StateChannel,
-	newStateReceivedByAllChannel ReceivedByAllChannel) error {
+	newStateReceivedByAllChannel ReceivedByAllChannel,
+	stateHistory *StateHistory) error {
 	http.HandleFunc("/json", func(w http.ResponseWriter, r *http.Request) {
 		requestChannel <- true
 		state := <-stateChannel
 
+		_, longPollMode := r.URL.Query()["wait"]
+		if longPollMode {
+			select {
+			case state = <-newStateChannel:
+				<-newStateReceivedByAllChannel
+				break
+			case <-time.After(time.Duration(flagPollTimeout) * time.Second):
+				log.Printf("Long poll timed out after %d seconds", flagPollTimeout)
+			}
+		}
+
 		jsonString := fmt.Sprintf(`{
     "speed": %.1f,
     "angle": %d,
-    "updated": "%s"
+    "time": "%s"
 }`,
 			state.windSpeed,
 			state.windAngle,
@@ -76,7 +91,7 @@ func HttpServer(
 		}
 
 		if fileToServe == homeHtmlFilePath {
-			w.Write([]byte(processHomeFile(string(content))))
+			w.Write([]byte(processHomeFile(string(content), stateHistory)))
 		} else {
 			w.Write(content)
 		}
@@ -84,12 +99,10 @@ func HttpServer(
 	return http.ListenAndServe(fmt.Sprintf(":%d", flagPort), nil)
 }
 
-func processHomeFile(content string) string {
-	var joinedSamples string
-
-	joinedSamples = "[0,0]"
-
-	resultat := strings.Replace(content, "__SAMPLES__", joinedSamples, -1)
-
-	return resultat
+func processHomeFile(content string, stateHistory *StateHistory) string {
+	return strings.Replace(
+		content,
+		"__SAMPLES__",
+		stateHistory.ToJSON(),
+		-1)
 }
