@@ -7,8 +7,8 @@ import (
 )
 
 type State struct {
-	windAngle   int16
-	windSpeed   float64
+	windAngle   WindAngle
+	windSpeed   WindSpeed
 	lastUpdated time.Time
 }
 
@@ -19,8 +19,22 @@ type StateHistory struct {
 	maxLength int
 }
 
-type PatchChannel chan StatePatch
-type StateChannel chan State
+type StateSubscription struct {
+	ch        chan State
+	permanent SubscriptionPersistence
+}
+
+type SubscriptionPersistence int
+
+const (
+	Permanent SubscriptionPersistence = -1
+	OneShot   SubscriptionPersistence = 1
+)
+
+func NewStateSubscription(permanent SubscriptionPersistence) *StateSubscription {
+	return &StateSubscription{ch: make(chan State, 0), permanent: permanent}
+}
+
 type RequestChannel chan bool
 
 type ReceivedByAllChannel chan bool

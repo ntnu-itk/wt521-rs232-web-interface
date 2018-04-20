@@ -2,12 +2,12 @@ function refresh() {
     var xhr = new XMLHttpRequest();
     xhr.open("GET", "/json?wait");
     xhr.onload = function(response) {
+        refreshIntervalId = setTimeout(refresh, 10)
+        
         var state = JSON.parse(response.target.response)
         console.log(state)
 
         updateBody(state)
-
-        refreshIntervalId = setTimeout(refresh, 10)
     }
     xhr.onerror = function(a1, a2) {
         console.log("xhr:onerror", a1, a2)
@@ -17,7 +17,7 @@ function refresh() {
         console.log("xhr:ontimeout", a1, a2)
         refreshIntervalId = setTimeout(refresh, 10)
     }
-    xhr.timeout = 5000
+    xhr.timeout = 60 * 1000
     xhr.send();
     return xhr;
 }
@@ -35,10 +35,6 @@ function updateBody(state) {
 
     var speedIndicator = document.getElementById("speedIndicator")
     speedIndicator.innerHTML = "" + state.speed + " m/s"
-
-    var timeIndicator = document.getElementById("timeIndicator")
-    var split = state.time.split(" ")
-    timeIndicator.innerHTML = "" + split[0] + " " + split[1]
 
     var directionTextIndicator = document.getElementById("directionTextIndicator")
     directionTextIndicator.innerHTML = "Fra " + getDirectionText(state.angle)

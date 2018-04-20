@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 
 	"github.com/tarm/serial"
@@ -31,57 +30,23 @@ func openSerialPort() *serial.Port {
 	return serialPort
 }
 
-func SerialMonitor(serialPort *serial.Port, patchChannel PatchChannel) {
-	patch := &StatePatch{}
-
-	for true {
-		patch.Parse(serialPort)
-		select {
-		case <-patchChannel:
-			log.Println("Discarded a state patch. The stateKeeper goroutine may have failed.")
-		default:
-			//log.Println("No patch in queue")
-		}
-		patchChannel <- *patch
-	}
-}
-
-func (patch *StatePatch) Parse(serialPort *serial.Port) error {
-	b := make([]byte, 500)
-	for b[0] != byte('$') {
-		serialPort.Read(b[0:1])
-	}
-
-	bytesRead := 0
+func SerialMonitor(serialPort *serial.Port, byteSubscribers []chan byte) {
+	buf := make([]byte, 1)
 	for {
-		n, err := serialPort.Read(b[bytesRead:])
-		bytesRead += n
+		n, err := serialPort.Read(buf)
 		if err != nil {
-			log.Printf("Error while reading data bytes: %s", err)
-		}
-		if rune(b[bytesRead-1]) == '*' {
-			//log.Printf("Have read %d bytes: %s", bytesRead, b)
-			break
-		}
-		if bytesRead == cap(b) {
-			log.Printf("Warning: read the maximum of %d bytes into buffer but no delimiter found; bailing early. If this happens consistently, check if serial port is configured correctly.", bytesRead)
-			log.Printf("         our buffer contains this: %s", string(b))
-			break
+			log.Printf("Could not read byte from serial port; %v", err)
+		} else {
+			if n == 0 {
+				log.Printf("Zero bytes read from serial port but no error.")
+			} else {
+				for i := 0; i < len(byteSubscribers); i++ {
+					if flagVerbose {
+						log.Printf("Sent byte 0x%02X to subscriber %d", buf[0], 1+i)
+					}
+					byteSubscribers[i] <- buf[0]
+				}
+			}
 		}
 	}
-
-	if flagVerbose {
-		log.Println(string(b))
-	}
-
-	n, err := fmt.Sscanf(string(b),
-		"WIMWV,%d,R,%f,M,A*",
-		&patch.windAngle,
-		&patch.windSpeed)
-
-	if n != 2 || err != nil {
-		log.Printf("Failed to extract data from buffer. Was able to parse %d of 2 numbers of interest with error '%s'", n, err)
-	}
-
-	return err
 }

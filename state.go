@@ -1,22 +1,25 @@
 package main
 
 import (
+	"container/list"
 	"flag"
 	"log"
+	"time"
 )
 
 var flagHistoryLimit int
+var flagMaxSubscribers int
 
 func init() {
 	flag.IntVar(&flagHistoryLimit, "history", 1000, "max number of readings to keep in memory")
+	flag.IntVar(&flagMaxSubscribers, "max-subscribers", 1000, "max number of requests that can wait for new data; exceeding it will discard oldest request")
 }
 
 func StateKeeper(
-	patchChannel PatchChannel,
+	patchChannel chan StatePatch,
 	requestChannel RequestChannel,
-	stateChannel StateChannel,
-	newStateBroadcastChannel StateChannel,
-	receivedByAllChannel ReceivedByAllChannel) {
+	stateChannel chan State,
+	stateToBeBroadcastChannel chan<- State) {
 	state := State{}
 	patch := StatePatch{}
 
@@ -24,17 +27,14 @@ func StateKeeper(
 		select {
 		case patch = <-patchChannel:
 			state.Patch(patch)
-			nSends := state.SendToAll(newStateBroadcastChannel, receivedByAllChannel)
-			if flagVerbose {
-				log.Printf("Sent new State to %d listeners.", nSends)
-			}
+			stateToBeBroadcastChannel <- state
 		case <-requestChannel:
 			stateChannel <- state
 		}
 	}
 }
 
-func (state *State) SendToAll(stateChannel StateChannel, receivedByAllChannel ReceivedByAllChannel) (nSends int) {
+func (state *State) SendToAll(stateChannel chan State, receivedByAllChannel ReceivedByAllChannel) (nSends int) {
 	if flagVerbose {
 		log.Println("Sending new State to all listeners…")
 	}
@@ -63,7 +63,7 @@ AllReceivedLoop:
 }
 
 // Updates the state history when new states occur
-func (stateHistory StateHistory) Maintain(newStateChannel StateChannel, receivedByAllChannel ReceivedByAllChannel) {
+func (stateHistory StateHistory) Maintain(newStateChannel chan State, receivedByAllChannel ReceivedByAllChannel) {
 	for {
 		state := <-newStateChannel
 		<-receivedByAllChannel
@@ -72,6 +72,45 @@ func (stateHistory StateHistory) Maintain(newStateChannel StateChannel, received
 
 		for stateHistory.list.Len() > stateHistory.maxLength {
 			stateHistory.list.Remove(stateHistory.list.Front())
+		}
+	}
+}
+
+func MessageToPatchConverter(messageChannel <-chan MWVMessage, patchChannel chan<- StatePatch) {
+	var patch StatePatch
+	var message MWVMessage
+	for {
+		message = <-messageChannel
+		if flagVerbose {
+			log.Printf("Converting %v to patch…", message)
+		}
+		patch.windAngle = message.dir
+		patch.windSpeed = message.spd
+		patch.lastUpdated = time.Now()
+		if flagVerbose {
+			log.Printf("Sending patch %v on patch channel…", patch)
+		}
+		patchChannel <- patch
+		if flagVerbose {
+			log.Println("Patch sent")
+		}
+	}
+}
+
+func StateBroadcaster(newSubcriptionsChannel <-chan *StateSubscription, stateToBeBroadcastChannel <-chan State) {
+	subscriberList := list.New()
+
+	for {
+		select {
+		case state := <-stateToBeBroadcastChannel:
+			for e := subscriberList.Front(); e != nil; e = e.Next() {
+				e.Value.(chan State) <- state
+			}
+		case subscriber := <-newSubcriptionsChannel:
+			subscriberList.PushBack(subscriber)
+			if subscriberList.Len() > flagMaxSubscribers {
+				subscriberList.Remove(subscriberList.Front())
+			}
 		}
 	}
 }

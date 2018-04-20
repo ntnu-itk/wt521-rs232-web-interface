@@ -19,14 +19,13 @@ var flagPollTimeout int64
 
 func init() {
 	flag.IntVar(&flagPort, "port", 8080, "port to open for HTTP server")
-	flag.Int64Var(&flagPollTimeout, "poll-timeout", 5000, "seconds to wait for new state before defaulting to the previous one when client is long polling")
+	flag.Int64Var(&flagPollTimeout, "poll-timeout", 100, "seconds to wait for new state before defaulting to the previous one when client is long polling")
 }
 
 func HttpServer(
 	requestChannel RequestChannel,
-	stateChannel StateChannel,
-	newStateChannel StateChannel,
-	newStateReceivedByAllChannel ReceivedByAllChannel,
+	stateChannel chan State,
+	stateSubscriptionChannel chan *StateSubscription,
 	stateHistory *StateHistory) error {
 	http.HandleFunc("/json", func(w http.ResponseWriter, r *http.Request) {
 		requestChannel <- true
@@ -34,9 +33,11 @@ func HttpServer(
 
 		_, longPollMode := r.URL.Query()["wait"]
 		if longPollMode {
+			stateSubscription := NewStateSubscription(false)
+			stateSubscriptionChannel <- stateSubscription
 			select {
-			case state = <-newStateChannel:
-				<-newStateReceivedByAllChannel
+			case state = <-stateSubscription.ch:
+				log.Printf("Waited for state and for %s (was received by all)", state.String())
 				break
 			case <-time.After(time.Duration(flagPollTimeout) * time.Second):
 				log.Printf("Long poll timed out after %d seconds", flagPollTimeout)
