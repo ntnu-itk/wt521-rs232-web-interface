@@ -23,17 +23,21 @@ func init() {
 }
 
 func HttpServer(
-	stateRequestChannel chan StateRequest,
+	stateRequestChannel chan *StateRequest,
 	currentStateChannel chan State,
-	newStateSubscriptionChannel chan *StateSubscription) error {
+	stateHistory *StateHistory) error {
 	http.HandleFunc("/json", func(w http.ResponseWriter, r *http.Request) {
-		httpHandleJSON(w, r, stateRequestChannel, currentStateChannel, newStateSubscriptionChannel)
+		httpHandleJSON(w, r, stateRequestChannel, currentStateChannel)
 	})
-	http.HandleFunc("/", httpHandleRoot)
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		httpHandleRoot(w, r, stateHistory)
+	})
 	return http.ListenAndServe(fmt.Sprintf(":%d", flagPort), nil)
 }
 
-func httpHandleRoot(w http.ResponseWriter, r *http.Request) {
+func httpHandleRoot(w http.ResponseWriter,
+	r *http.Request,
+	stateHistory *StateHistory) {
 	fileToServe := "www/" + r.URL.Path
 	fileToServe = strings.Replace(fileToServe, "..", ".", -1)
 	fileToServe = strings.Replace(fileToServe, "//", "/", -1)
@@ -68,8 +72,7 @@ func httpHandleRoot(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if fileToServe == homeHtmlFilePath {
-		//w.Write([]byte(processHomeFile(string(content), stateHistory)))
-		w.Write(content)
+		w.Write([]byte(processHomeFile(string(content), stateHistory)))
 	} else {
 		w.Write(content)
 	}
@@ -77,26 +80,27 @@ func httpHandleRoot(w http.ResponseWriter, r *http.Request) {
 
 func httpHandleJSON(w http.ResponseWriter,
 	r *http.Request,
-	stateRequestChannel chan<- StateRequest,
-	stateChannel <-chan State,
-	newStateSubscriptionChannel chan<- *StateSubscription) {
+	stateRequestChannel chan<- *StateRequest,
+	stateChannel <-chan State) {
 
-	stateRequestChannel <- GimmePls
-	state := <-stateChannel
+	var state State
 
 	_, longPollMode := r.URL.Query()["wait"]
 	if longPollMode {
-		stateSubscription := NewStateSubscription(OneShot)
-		newStateSubscriptionChannel <- stateSubscription
 		select {
-		case state = <-stateSubscription.ch:
+		case state = <-stateChannel:
 			log.Printf("Waited for state %s", state.String())
 			w.WriteHeader(http.StatusOK)
 			break
 		case <-time.After(time.Duration(flagPollTimeout) * time.Second):
 			log.Printf("Long poll timed out after %d seconds", flagPollTimeout)
 			w.WriteHeader(http.StatusNotModified)
+			break
 		}
+	} else {
+		stateRequest := NewStateRequest()
+		stateRequestChannel <- stateRequest
+		state = <-stateRequest.reply
 	}
 
 	jsonString := fmt.Sprintf(`{

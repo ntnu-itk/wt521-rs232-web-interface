@@ -17,13 +17,20 @@ func main() {
 	patchChannel := make(chan StatePatch, 0)
 	go MessageToPatchConverter(mwvMessageChannel, patchChannel)
 
-	newStateSubscriptionChannel := make(chan *StateSubscription, 0)
-	stateSubscriptionLedger := NewStateSubscriptionLedger()
-	go stateSubscriptionLedger.Manage(newStateSubscriptionChannel)
-
-	stateRequestChannel := make(chan StateRequest, 0)
+	stateRequestChannel := make(chan *StateRequest, 0)
 	currentStateChannel := make(chan State, 0)
-	go StateKeeper(patchChannel, stateRequestChannel, currentStateChannel, stateSubscriptionLedger)
 
-	log.Fatal(HttpServer(stateRequestChannel, currentStateChannel, newStateSubscriptionChannel))
+	go StateKeeper(patchChannel, stateRequestChannel, currentStateChannel)
+
+	stateHistory := NewStateHistory()
+	go stateHistory.Maintain(currentStateChannel)
+
+	err := HttpServer(stateRequestChannel, currentStateChannel, stateHistory)
+
+	reportError(err)
+
+	log.Fatal(err)
 }
+
+// Implement this if you want to report the error, e.g. send an email
+func reportError(err error) {}
