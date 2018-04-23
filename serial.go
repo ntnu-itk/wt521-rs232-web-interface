@@ -30,7 +30,7 @@ func openSerialPort() *serial.Port {
 	return serialPort
 }
 
-func SerialMonitor(serialPort *serial.Port, byteSubscribers []chan byte) {
+func SerialReader(serialPort *serial.Port, byteChannel chan<- byte) {
 	buf := make([]byte, 1)
 	for {
 		n, err := serialPort.Read(buf)
@@ -40,12 +40,7 @@ func SerialMonitor(serialPort *serial.Port, byteSubscribers []chan byte) {
 			if n == 0 {
 				log.Printf("Zero bytes read from serial port but no error.")
 			} else {
-				for i := 0; i < len(byteSubscribers); i++ {
-					if flagVerbose {
-						log.Printf("Sent byte 0x%02X to subscriber %d", buf[0], 1+i)
-					}
-					byteSubscribers[i] <- buf[0]
-				}
+				byteChannel <- buf[0]
 			}
 		}
 	}

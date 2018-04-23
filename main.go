@@ -8,30 +8,22 @@ import (
 func main() {
 	flag.Parse()
 
-	patchChannel := make(chan StatePatch, 0)
-	stateChannel := make(chan State, 0)
-	requestChannel := make(RequestChannel, 0)
+	bytesChannel := make(chan byte, 0)
+	go SerialReader(openSerialPort(), bytesChannel)
 
-	newStateBroadcastChannel := make(chan State, 0)
-	newStateReceivedByAllChannel := make(ReceivedByAllChannel, 0)
-
-	stateHistory := NewStateHistory()
-
-	serialPort := openSerialPort()
-
-	mwvByteChannel := make(chan byte, 0)
 	mwvMessageChannel := make(chan MWVMessage, 0)
+	go MWVMessageConinuousScan(bytesChannel, mwvMessageChannel)
 
-	byteSubscribers := []chan byte{mwvByteChannel}
-
-	stateToBeBroadcastChannel := make(chan State, 0)
-	stateSubscriptionChannel := make(chan *StateSubscription, 0)
-
-	go stateHistory.Maintain(NewStateSubscription(Permanent))
-	go StateKeeper(patchChannel, requestChannel, stateChannel, stateToBeBroadcastChannel)
+	patchChannel := make(chan StatePatch, 0)
 	go MessageToPatchConverter(mwvMessageChannel, patchChannel)
-	go MWVMessageConinuousScan(mwvByteChannel, mwvMessageChannel)
-	go SerialMonitor(serialPort, byteSubscribers)
 
-	log.Fatal(HttpServer(requestChannel, stateChannel, stateSubscriptionChannel, stateHistory))
+	newStateSubscriptionChannel := make(chan *StateSubscription, 0)
+	stateSubscriptionLedger := NewStateSubscriptionLedger()
+	go stateSubscriptionLedger.Manage(newStateSubscriptionChannel)
+
+	stateRequestChannel := make(chan StateRequest, 0)
+	currentStateChannel := make(chan State, 0)
+	go StateKeeper(patchChannel, stateRequestChannel, currentStateChannel, stateSubscriptionLedger)
+
+	log.Fatal(HttpServer(stateRequestChannel, currentStateChannel, newStateSubscriptionChannel))
 }

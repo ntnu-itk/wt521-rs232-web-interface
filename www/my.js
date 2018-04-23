@@ -2,7 +2,7 @@ function refresh() {
     var xhr = new XMLHttpRequest();
     xhr.open("GET", "/json?wait");
     xhr.onload = function(response) {
-        refreshIntervalId = setTimeout(refresh, 10)
+        refreshIntervalId = setTimeout(refresh, 500)
         
         var state = JSON.parse(response.target.response)
         console.log(state)

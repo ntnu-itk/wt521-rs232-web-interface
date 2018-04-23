@@ -23,81 +23,94 @@ func init() {
 }
 
 func HttpServer(
-	requestChannel RequestChannel,
-	stateChannel chan State,
-	stateSubscriptionChannel chan *StateSubscription,
-	stateHistory *StateHistory) error {
+	stateRequestChannel chan StateRequest,
+	currentStateChannel chan State,
+	newStateSubscriptionChannel chan *StateSubscription) error {
 	http.HandleFunc("/json", func(w http.ResponseWriter, r *http.Request) {
-		requestChannel <- true
-		state := <-stateChannel
+		httpHandleJSON(w, r, stateRequestChannel, currentStateChannel, newStateSubscriptionChannel)
+	})
+	http.HandleFunc("/", httpHandleRoot)
+	return http.ListenAndServe(fmt.Sprintf(":%d", flagPort), nil)
+}
 
-		_, longPollMode := r.URL.Query()["wait"]
-		if longPollMode {
-			stateSubscription := NewStateSubscription(false)
-			stateSubscriptionChannel <- stateSubscription
-			select {
-			case state = <-stateSubscription.ch:
-				log.Printf("Waited for state and for %s (was received by all)", state.String())
-				break
-			case <-time.After(time.Duration(flagPollTimeout) * time.Second):
-				log.Printf("Long poll timed out after %d seconds", flagPollTimeout)
-			}
+func httpHandleRoot(w http.ResponseWriter, r *http.Request) {
+	fileToServe := "www/" + r.URL.Path
+	fileToServe = strings.Replace(fileToServe, "..", ".", -1)
+	fileToServe = strings.Replace(fileToServe, "//", "/", -1)
+
+	if r.URL.Path == "/" || r.URL.Path == "index.html" {
+		fileToServe = homeHtmlFilePath
+	}
+
+	content, err := ioutil.ReadFile(fileToServe)
+	if err != nil {
+		log.Printf("Error serving static file %s: %s", fileToServe, err)
+	}
+
+	log.Printf("%s => serve static file %s (length %d)", r.URL.Path, fileToServe, len(content))
+
+	filenameDotParts := strings.Split(fileToServe, ".")
+	if len(filenameDotParts) > 1 {
+		mimeType := "text/html"
+
+		switch filenameDotParts[1] {
+		case "js":
+			mimeType = "text/javascript"
+		case "css":
+			mimeType = "text/css"
+		case "svg":
+			mimeType = "image/svg+xml"
+		case "png":
+			mimeType = "image/png"
 		}
 
-		jsonString := fmt.Sprintf(`{
+		w.Header().Set("Content-Type", mimeType)
+	}
+
+	if fileToServe == homeHtmlFilePath {
+		//w.Write([]byte(processHomeFile(string(content), stateHistory)))
+		w.Write(content)
+	} else {
+		w.Write(content)
+	}
+}
+
+func httpHandleJSON(w http.ResponseWriter,
+	r *http.Request,
+	stateRequestChannel chan<- StateRequest,
+	stateChannel <-chan State,
+	newStateSubscriptionChannel chan<- *StateSubscription) {
+
+	stateRequestChannel <- GimmePls
+	state := <-stateChannel
+
+	_, longPollMode := r.URL.Query()["wait"]
+	if longPollMode {
+		stateSubscription := NewStateSubscription(OneShot)
+		newStateSubscriptionChannel <- stateSubscription
+		select {
+		case state = <-stateSubscription.ch:
+			log.Printf("Waited for state %s", state.String())
+			w.WriteHeader(http.StatusOK)
+			break
+		case <-time.After(time.Duration(flagPollTimeout) * time.Second):
+			log.Printf("Long poll timed out after %d seconds", flagPollTimeout)
+			w.WriteHeader(http.StatusNotModified)
+		}
+	}
+
+	jsonString := fmt.Sprintf(`{
     "speed": %.1f,
     "angle": %d,
     "time": "%s"
 }`,
-			state.windSpeed,
-			state.windAngle,
-			SimpleTimeString(state.lastUpdated))
+		state.windSpeed,
+		state.windAngle,
+		SimpleTimeString(state.lastUpdated))
 
-		log.Printf("%s => serve JSON of %s", r.URL.Path, state.String())
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, jsonString)
-	})
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fileToServe := "www/" + r.URL.Path
-		fileToServe = strings.Replace(fileToServe, "..", ".", -1)
-		fileToServe = strings.Replace(fileToServe, "//", "/", -1)
-
-		if r.URL.Path == "/" || r.URL.Path == "index.html" {
-			fileToServe = homeHtmlFilePath
-		}
-
-		content, err := ioutil.ReadFile(fileToServe)
-		if err != nil {
-			log.Printf("Error serving static file %s: %s", fileToServe, err)
-		}
-
-		log.Printf("%s => serve static file %s (length %d)", r.URL.Path, fileToServe, len(content))
-
-		filenameDotParts := strings.Split(fileToServe, ".")
-		if len(filenameDotParts) > 1 {
-			mimeType := "text/html"
-
-			switch filenameDotParts[1] {
-			case "js":
-				mimeType = "text/javascript"
-			case "css":
-				mimeType = "text/css"
-			case "svg":
-				mimeType = "image/svg+xml"
-			case "png":
-				mimeType = "image/png"
-			}
-
-			w.Header().Set("Content-Type", mimeType)
-		}
-
-		if fileToServe == homeHtmlFilePath {
-			w.Write([]byte(processHomeFile(string(content), stateHistory)))
-		} else {
-			w.Write(content)
-		}
-	})
-	return http.ListenAndServe(fmt.Sprintf(":%d", flagPort), nil)
+	log.Printf("%s => serve JSON of %s", r.URL.Path, state.String())
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(jsonString))
 }
 
 func processHomeFile(content string, stateHistory *StateHistory) string {

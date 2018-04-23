@@ -1,11 +1,20 @@
 package main
 
 import (
-	"container/list"
 	"flag"
-	"log"
+	"fmt"
 	"time"
 )
+
+type State struct {
+	windAngle   WindAngle
+	windSpeed   WindSpeed
+	lastUpdated time.Time
+}
+
+type StateRequest bool
+
+const GimmePls StateRequest = true
 
 var flagHistoryLimit int
 var flagMaxSubscribers int
@@ -16,101 +25,36 @@ func init() {
 }
 
 func StateKeeper(
-	patchChannel chan StatePatch,
-	requestChannel RequestChannel,
-	stateChannel chan State,
-	stateToBeBroadcastChannel chan<- State) {
+	patchChannel <-chan StatePatch,
+	requestChannel <-chan StateRequest,
+	stateChannel chan<- State,
+	stateSubscriptionLedger *StateSubscriptionLedger) {
 	state := State{}
-	patch := StatePatch{}
 
 	for {
 		select {
-		case patch = <-patchChannel:
-			state.Patch(patch)
-			stateToBeBroadcastChannel <- state
+		case patch := <-patchChannel:
+			state.Apply(patch)
+			stateSubscriptionLedger.Broadcast(state)
 		case <-requestChannel:
 			stateChannel <- state
 		}
 	}
 }
 
-func (state *State) SendToAll(stateChannel chan State, receivedByAllChannel ReceivedByAllChannel) (nSends int) {
-	if flagVerbose {
-		log.Println("Sending new State to all listeners…")
-	}
-
-SendToAllLoop:
-	for nSends = 0; ; nSends++ {
-		select {
-		case stateChannel <- *state:
-			// OK
-		default:
-			break SendToAllLoop
-		}
-	}
-
-AllReceivedLoop:
-	for {
-		select {
-		case receivedByAllChannel <- true:
-			// OK
-		default:
-			break AllReceivedLoop
-		}
-	}
-
-	return
+func (state *State) Apply(patch StatePatch) {
+	state.windSpeed = patch.windSpeed
+	state.windAngle = patch.windAngle
+	state.lastUpdated = time.Now()
 }
 
-// Updates the state history when new states occur
-func (stateHistory StateHistory) Maintain(newStateChannel chan State, receivedByAllChannel ReceivedByAllChannel) {
-	for {
-		state := <-newStateChannel
-		<-receivedByAllChannel
-
-		stateHistory.list.PushBack(state)
-
-		for stateHistory.list.Len() > stateHistory.maxLength {
-			stateHistory.list.Remove(stateHistory.list.Front())
-		}
-	}
+func (state *State) String() string {
+	return fmt.Sprintf("State{Speed:%.1f, Angle:%d, Updated:%s}",
+		state.windSpeed,
+		state.windAngle,
+		SimpleTimeString(state.lastUpdated))
 }
 
-func MessageToPatchConverter(messageChannel <-chan MWVMessage, patchChannel chan<- StatePatch) {
-	var patch StatePatch
-	var message MWVMessage
-	for {
-		message = <-messageChannel
-		if flagVerbose {
-			log.Printf("Converting %v to patch…", message)
-		}
-		patch.windAngle = message.dir
-		patch.windSpeed = message.spd
-		patch.lastUpdated = time.Now()
-		if flagVerbose {
-			log.Printf("Sending patch %v on patch channel…", patch)
-		}
-		patchChannel <- patch
-		if flagVerbose {
-			log.Println("Patch sent")
-		}
-	}
-}
-
-func StateBroadcaster(newSubcriptionsChannel <-chan *StateSubscription, stateToBeBroadcastChannel <-chan State) {
-	subscriberList := list.New()
-
-	for {
-		select {
-		case state := <-stateToBeBroadcastChannel:
-			for e := subscriberList.Front(); e != nil; e = e.Next() {
-				e.Value.(chan State) <- state
-			}
-		case subscriber := <-newSubcriptionsChannel:
-			subscriberList.PushBack(subscriber)
-			if subscriberList.Len() > flagMaxSubscribers {
-				subscriberList.Remove(subscriberList.Front())
-			}
-		}
-	}
+func (state *State) ToJSON() string {
+	return fmt.Sprintf(`{"speed":%f,"angle":%d,"time":"%s"}`, state.windSpeed, state.windAngle, SimpleTimeString(state.lastUpdated))
 }

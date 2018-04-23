@@ -227,7 +227,12 @@ func MWVMessageConinuousScan(byteChannel <-chan byte, messageChannel chan<- MWVM
 		for bytesRead = 1; buf[bytesRead-1] != 0x0D; bytesRead++ {
 			buf[bytesRead] = <-byteChannel
 		}
-		msg.parse(string(buf[:bytesRead-1]))
+		bufStr := string(buf[:bytesRead-1])
+		err := msg.parse(bufStr)
+		if err != nil {
+			log.Printf("Could not parse '%s'", bufStr)
+			continue
+		}
 		if flagVerbose {
 			log.Printf("Sending parsed message %v to message channel", msg)
 		}
