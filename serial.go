@@ -35,10 +35,10 @@ func SerialReader(serialPort *serial.Port, byteChannel chan<- byte) {
 	for {
 		n, err := serialPort.Read(buf)
 		if err != nil {
-			log.Printf("Could not read byte from serial port; %v", err)
+			log.Printf("[SerialReader] Could not read byte from serial port; %v", err)
 		} else {
 			if n == 0 {
-				log.Printf("Zero bytes read from serial port but no error.")
+				log.Printf("[SerialReader] Zero bytes read from serial port but no error.")
 			} else {
 				byteChannel <- buf[0]
 			}

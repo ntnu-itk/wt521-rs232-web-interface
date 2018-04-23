@@ -48,10 +48,12 @@ func httpHandleRoot(w http.ResponseWriter,
 
 	content, err := ioutil.ReadFile(fileToServe)
 	if err != nil {
-		log.Printf("Error serving static file %s: %s", fileToServe, err)
+		log.Printf("[HttpServer] Error serving static file %s: %s", fileToServe, err)
 	}
 
-	log.Printf("%s => serve static file %s (length %d)", r.URL.Path, fileToServe, len(content))
+	if flagVerbose {
+		log.Printf("[HttpServer] %s => serve static file %s (length %d)", r.URL.Path, fileToServe, len(content))
+	}
 
 	filenameDotParts := strings.Split(fileToServe, ".")
 	if len(filenameDotParts) > 1 {
@@ -89,11 +91,13 @@ func httpHandleJSON(w http.ResponseWriter,
 	if longPollMode {
 		select {
 		case state = <-stateChannel:
-			log.Printf("Waited for state %s", state.String())
+			if flagVerbose {
+				log.Printf("[HttpServer] Waited for state %s", state.String())
+			}
 			w.WriteHeader(http.StatusOK)
 			break
 		case <-time.After(time.Duration(flagPollTimeout) * time.Second):
-			log.Printf("Long poll timed out after %d seconds", flagPollTimeout)
+			log.Printf("[HttpServer] Long poll timed out after %d seconds, sending previous state", flagPollTimeout)
 			w.WriteHeader(http.StatusNotModified)
 			break
 		}
@@ -112,7 +116,10 @@ func httpHandleJSON(w http.ResponseWriter,
 		state.windAngle,
 		SimpleTimeString(state.lastUpdated))
 
-	log.Printf("%s => serve JSON of %s", r.URL.Path, state.String())
+	if flagVerbose {
+		log.Printf("[HttpServer] %s => serve JSON of %s", r.URL.Path, state.String())
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(jsonString))
 }

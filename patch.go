@@ -18,18 +18,23 @@ func MessageToPatchConverter(messageChannel <-chan MWVMessage, patchChannel chan
 	var patch StatePatch
 	for {
 		message := <-messageChannel
+
 		if flagVerbose {
-			log.Printf("Converting %v to patch…", message)
+			log.Printf("[MessageToPatchConverter] Converting %v to patch…", message)
 		}
+
 		patch.windAngle = message.dir
 		patch.windSpeed = message.spd
 		patch.lastUpdated = time.Now()
+
 		if flagVerbose {
-			log.Printf("Sending patch %v on patch channel…", patch)
+			log.Printf("[MessageToPatchConverter] Sending patch %v on patch channel…", patch)
 		}
+
 		patchChannel <- patch
+
 		if flagVerbose {
-			log.Println("Patch sent")
+			log.Println("[MessageToPatchConverter] Patch sent")
 		}
 	}
 }
