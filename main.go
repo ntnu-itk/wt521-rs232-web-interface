@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 )
 
@@ -33,4 +32,5 @@ func main() {
 	log.Fatal(err)
 }
 
-func reportError(err error) { fmt.Println(err) }
+// Implement this if you want to report the error, e.g. send an email
+func reportError(err error) {}
