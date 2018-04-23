@@ -1,9 +1,9 @@
 ARGS=
 F_PROG=./wt521-rs232-web-interface
 
-all: install build run
+all: deps build run
 
-install:
+deps:
 	go get
 
 build:

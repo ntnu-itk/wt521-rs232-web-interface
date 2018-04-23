@@ -2,4 +2,6 @@ language: go
 go:
   - "1.10.x"
 
+install: go get
+
 script: go test
