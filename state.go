@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"time"
 )
@@ -12,32 +11,37 @@ type State struct {
 	lastUpdated time.Time
 }
 
-type StateRequest bool
+type StateRequest struct {
+	reply chan State
+}
 
-const GimmePls StateRequest = true
-
-var flagHistoryLimit int
-var flagMaxSubscribers int
-
-func init() {
-	flag.IntVar(&flagHistoryLimit, "history", 1000, "max number of readings to keep in memory")
-	flag.IntVar(&flagMaxSubscribers, "max-subscribers", 1000, "max number of requests that can wait for new data; exceeding it will discard oldest request")
+func NewStateRequest() *StateRequest {
+	return &StateRequest{
+		reply: make(chan State, 0)}
 }
 
 func StateKeeper(
 	patchChannel <-chan StatePatch,
-	requestChannel <-chan StateRequest,
-	stateChannel chan<- State,
-	stateSubscriptionLedger *StateSubscriptionLedger) {
+	requestChannel <-chan *StateRequest,
+	stateChannel chan<- State) {
 	state := State{}
 
 	for {
 		select {
 		case patch := <-patchChannel:
 			state.Apply(patch)
-			stateSubscriptionLedger.Broadcast(state)
-		case <-requestChannel:
-			stateChannel <- state
+		BroadcastLoop:
+			for {
+				select {
+				case stateChannel <- state:
+				default:
+					break BroadcastLoop
+				}
+			}
+			break
+		case request := <-requestChannel:
+			request.reply <- state
+			break
 		}
 	}
 }

@@ -1,6 +1,15 @@
 package main
 
-import "container/list"
+import (
+	"container/list"
+	"flag"
+)
+
+var flagHistoryLimit int
+
+func init() {
+	flag.IntVar(&flagHistoryLimit, "history", 1000, "max number of readings to keep in memory")
+}
 
 type StateHistory struct {
 	list      *list.List
@@ -14,10 +23,9 @@ func NewStateHistory() *StateHistory {
 }
 
 // Updates the state history when new states occur
-func (stateHistory *StateHistory) Maintain(newSubscriptionChannel chan<- *StateSubscription) {
-	ss := NewStateSubscription(Permanent)
+func (stateHistory *StateHistory) Maintain(stateChannel chan State) {
 	for {
-		state := <-ss.ch
+		state := <-stateChannel
 
 		stateHistory.list.PushBack(state)
 
