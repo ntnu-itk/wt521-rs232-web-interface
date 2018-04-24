@@ -9,7 +9,7 @@
 </head>
 
 <body>
-    <div class="flex column">
+    <div id="content-column" class="flex column">
         <div class="flex row">
             <div id="webcamContainer" class="flex column">
                 <div class="flex spacer"></div>
@@ -24,9 +24,11 @@
                     <img id="arrow" src="/arrow.png">
                 </div>
             </div>
+            <div class="spacer"></div>
         </div>
         <div class="flex row">
-            <div id="graphContainer">
+            <div class="flex spacer"></div>
+            <div class="flex column" id="graphContainer">
                 <svg viewBox="0 0 52 52" stroke-width="0.1" stroke-linecap="round">
                     <text font-size="1.2" dy="2" text-anchor="start" font-family="monospace">Siste 24 timer</text>
                     <g transform="translate(25,0)">
@@ -59,6 +61,7 @@
                     </g>
                 </svg>
             </div>
+            <div class="flex spacer"></div>
         </div>
     </div>
     <script type="text/javascript">
