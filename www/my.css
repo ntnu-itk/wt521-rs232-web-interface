@@ -30,6 +30,7 @@
 #compassContainer {
     position: relative;
     max-width: 50%;
+    text-align: center;
 }
 
 #webcamContainer {
@@ -41,12 +42,19 @@
     width: 100%;
 }
 
+#webcamContainer img[src=''] {
+    display: none;
+}
+
 #compass {
     position: relative;
 }
 
 #compass img {
     width: 100%;
+}
+
+#compass img:not(:first-of-type) {
     position: absolute;
     top: 0;
     left: 0;
