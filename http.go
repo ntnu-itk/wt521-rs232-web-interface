@@ -68,7 +68,10 @@ func httpHandleRoot(w http.ResponseWriter,
 	}
 
 	mimeType := setMimeType(w, fileToServe)
-	log.Printf("MIME type is %s", mimeType)
+
+	if flagVerbose {
+		log.Printf("MIME type is %s", mimeType)
+	}
 
 	if strings.Index(mimeType, "text/html") >= 0 {
 		data := tplData{
@@ -79,12 +82,12 @@ func httpHandleRoot(w http.ResponseWriter,
 
 		if err != nil {
 			log.Printf("[HttpServer] Error at ParseGlob: %s", err)
-		}
+		} else {
+			err = t.ExecuteTemplate(w, "index.html", data)
 
-		err = t.ExecuteTemplate(w, "index.html", data)
-
-		if err != nil {
-			log.Printf("Error executing template: %s", err)
+			if err != nil {
+				log.Printf("Error executing template: %s", err)
+			}
 		}
 	} else {
 		w.Write(content)
