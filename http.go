@@ -16,10 +16,15 @@ const (
 
 var flagPort int
 var flagPollTimeout int64
+var flagCameraUrl string
 
 func init() {
-	flag.IntVar(&flagPort, "port", 8080, "port to open for HTTP server")
-	flag.Int64Var(&flagPollTimeout, "poll-timeout", 100, "seconds to wait for new state before defaulting to the previous one when client is long polling")
+	flag.IntVar(&flagPort, "port", 8080,
+		"port to open for HTTP server")
+	flag.Int64Var(&flagPollTimeout, "poll-timeout", 100,
+		"seconds to wait for new state before defaulting to the previous one when client is long polling")
+	flag.StringVar(&flagCameraUrl, "camera-url", "https://www.vegvesen.no/public/webkamera/kamera?id=110409",
+		"URL to use for the src attribute of the image in the top left corner")
 }
 
 func HttpServer(
@@ -124,10 +129,14 @@ func httpHandleJSON(w http.ResponseWriter,
 	w.Write([]byte(jsonString))
 }
 
-func processHomeFile(content string, stateHistory *StateHistory) string {
-	return strings.Replace(
-		content,
+func processHomeFile(content string, stateHistory *StateHistory) (result string) {
+	result = strings.Replace(content,
 		"__SAMPLES__",
 		stateHistory.ToJSON(),
 		-1)
+	result = strings.Replace(result,
+		"__CAMERA_URL__",
+		flagCameraUrl,
+		-1)
+	return
 }
