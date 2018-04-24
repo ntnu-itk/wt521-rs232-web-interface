@@ -7,7 +7,7 @@ deps:
 	go get
 
 build:
-	go build
+	go build -o $(F_PROG)
 
 run:
 	$(F_PROG) $(ARGS)
