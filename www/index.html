@@ -13,7 +13,7 @@
         <div class="flex row">
             <div id="webcamContainer" class="flex column">
                 <div class="flex spacer"></div>
-                <img src="__CAMERA_URL__">
+                <img src="{{.WebcamURL}}">
                 <div class="flex spacer"></div>
             </div>
             <div class="spacer"></div>
@@ -65,7 +65,14 @@
         </div>
     </div>
     <script type="text/javascript">
-    var stateHistory = [__SAMPLES__]
+    // We must inject the JSON like this to circumvent the template library's
+    // super-effective context-aware escaping.
+    var stateHistory = JSON.parse(
+        "["
+        + {{.StateHistory.ToJSON}}
+        + "]"
+    )
+
     for (var i = 0; i < stateHistory.length; i++) {
         lineQueue.push({
             element: makeLine(stateHistory[i].speed, stateHistory[i].angle),

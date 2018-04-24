@@ -3,15 +3,17 @@ package main
 import (
 	"flag"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"log"
+	"mime"
 	"net/http"
 	"strings"
 	"time"
 )
 
 const (
-	homeHtmlFilePath = "www/home.html"
+	indexHtmlFilePath = "www/index.html"
 )
 
 var flagPort int
@@ -25,6 +27,11 @@ func init() {
 		"seconds to wait for new state before defaulting to the previous one when client is long polling")
 	flag.StringVar(&flagCameraUrl, "camera-url", "https://www.vegvesen.no/public/webkamera/kamera?id=110409",
 		"URL to use for the src attribute of the image in the top left corner")
+}
+
+type tplData struct {
+	StateHistory *StateHistory
+	WebcamURL    string
 }
 
 func HttpServer(
@@ -47,8 +54,8 @@ func httpHandleRoot(w http.ResponseWriter,
 	fileToServe = strings.Replace(fileToServe, "..", ".", -1)
 	fileToServe = strings.Replace(fileToServe, "//", "/", -1)
 
-	if r.URL.Path == "/" || r.URL.Path == "index.html" {
-		fileToServe = homeHtmlFilePath
+	if r.URL.Path == "/" {
+		fileToServe = indexHtmlFilePath
 	}
 
 	content, err := ioutil.ReadFile(fileToServe)
@@ -60,26 +67,25 @@ func httpHandleRoot(w http.ResponseWriter,
 		log.Printf("[HttpServer] %s => serve static file %s (length %d)", r.URL.Path, fileToServe, len(content))
 	}
 
-	filenameDotParts := strings.Split(fileToServe, ".")
-	if len(filenameDotParts) > 1 {
-		mimeType := "text/html"
+	mimeType := setMimeType(w, fileToServe)
+	log.Printf("MIME type is %s", mimeType)
 
-		switch filenameDotParts[1] {
-		case "js":
-			mimeType = "text/javascript"
-		case "css":
-			mimeType = "text/css"
-		case "svg":
-			mimeType = "image/svg+xml"
-		case "png":
-			mimeType = "image/png"
+	if strings.Index(mimeType, "text/html") >= 0 {
+		data := tplData{
+			StateHistory: stateHistory,
+			WebcamURL:    flagCameraUrl}
+
+		t, err := template.ParseGlob("www/*.html")
+
+		if err != nil {
+			log.Printf("[HttpServer] Error at ParseGlob: %s", err)
 		}
 
-		w.Header().Set("Content-Type", mimeType)
-	}
+		err = t.ExecuteTemplate(w, "index.html", data)
 
-	if fileToServe == homeHtmlFilePath {
-		w.Write([]byte(processHomeFile(string(content), stateHistory)))
+		if err != nil {
+			log.Printf("Error executing template: %s", err)
+		}
 	} else {
 		w.Write(content)
 	}
@@ -138,5 +144,20 @@ func processHomeFile(content string, stateHistory *StateHistory) (result string)
 		"__CAMERA_URL__",
 		flagCameraUrl,
 		-1)
+	return
+}
+
+func setMimeType(w http.ResponseWriter, fileToServe string) (mimeType string) {
+	filenameDotParts := strings.Split(fileToServe, ".")
+	mimeType = "text/plain"
+	if len(filenameDotParts) > 1 {
+		mimeType = mime.TypeByExtension(
+			fmt.Sprintf(
+				".%s",
+				filenameDotParts[len(filenameDotParts)-1]))
+	}
+
+	w.Header().Set("Content-Type", mimeType)
+
 	return
 }
