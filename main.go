@@ -29,7 +29,7 @@ func main() {
 
 	reportError(err)
 
-	log.Fatal(err)
+	log.Fatalf("Error from [HttpServer]: %s", err)
 }
 
 // Implement this if you want to report the error, e.g. send an email

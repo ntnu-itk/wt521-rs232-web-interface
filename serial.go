@@ -24,7 +24,7 @@ func openSerialPort() *serial.Port {
 			StopBits: serial.Stop1,
 			Size:     8})
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("[openSerialPort] (FATAL) %s", err)
 	}
 
 	return serialPort
