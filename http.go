@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"io/ioutil"
 	"log"
+	"math"
 	"mime"
 	"net/http"
 	"strings"
@@ -17,21 +18,32 @@ const (
 )
 
 var flagPort int
-var flagPollTimeout int64
 var flagCameraUrl string
+var flagInterval float64
+var flagDaysOfHistory float64
+
+// Max number of samples to keep before discarding oldest
+var flagHistorySamples int
+var flagPollTimeout int64
 
 func init() {
 	flag.IntVar(&flagPort, "port", 8080,
 		"port to open for HTTP server")
-	flag.Int64Var(&flagPollTimeout, "poll-timeout", 100,
-		"seconds to wait for new state before defaulting to the previous one when client is long polling")
 	flag.StringVar(&flagCameraUrl, "camera-url", "https://www.vegvesen.no/public/webkamera/kamera?id=110409",
 		"URL to use for the src attribute of the image in the top left corner")
+	flag.Float64Var(&flagInterval, "interval", 3,
+		"should be the same as the MWV interval of the WT521, see setup.md")
+	flag.Float64Var(&flagDaysOfHistory, "history-days", 1,
+		"days worth of sample data to keep and show")
+
+	flagHistorySamples = int(math.Round((flagDaysOfHistory * 24 * 3600) / 3))
+	flagPollTimeout = int64(math.Round(flagInterval * 1000 * 1.1))
 }
 
 type tplData struct {
 	StateHistory *StateHistory
 	WebcamURL    string
+	MaxLines     int
 }
 
 func HttpServer(
@@ -76,7 +88,8 @@ func httpHandleRoot(w http.ResponseWriter,
 	if strings.Index(mimeType, "text/html") >= 0 {
 		data := tplData{
 			StateHistory: stateHistory,
-			WebcamURL:    flagCameraUrl}
+			WebcamURL:    flagCameraUrl,
+			MaxLines:     flagHistorySamples}
 
 		t, err := template.ParseGlob("www/*.html")
 
@@ -126,9 +139,9 @@ func httpHandleJSON(w http.ResponseWriter,
     "angle": %d,
     "time": "%s"
 }`,
-		state.windSpeed,
-		state.windAngle,
-		SimpleTimeString(state.lastUpdated))
+		state.WindSpeed,
+		state.WindAngle,
+		state.LastUpdated.String())
 
 	if flagVerbose {
 		log.Printf("[HttpServer] %s => serve JSON of %s", r.URL.Path, state.String())
