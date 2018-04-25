@@ -138,18 +138,6 @@ func httpHandleJSON(w http.ResponseWriter,
 	w.Write([]byte(jsonString))
 }
 
-func processHomeFile(content string, stateHistory *StateHistory) (result string) {
-	result = strings.Replace(content,
-		"__SAMPLES__",
-		stateHistory.ToJSON(),
-		-1)
-	result = strings.Replace(result,
-		"__CAMERA_URL__",
-		flagCameraUrl,
-		-1)
-	return
-}
-
 func setMimeType(w http.ResponseWriter, fileToServe string) (mimeType string) {
 	filenameDotParts := strings.Split(fileToServe, ".")
 	mimeType = "text/plain"
