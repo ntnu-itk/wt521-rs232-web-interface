@@ -65,13 +65,15 @@
         </div>
     </div>
     <script type="text/javascript">
-    // We must inject the JSON like this to circumvent the template library's
+    var MAX_LINES = {{.MaxLines}} // Max lines in wind graph
+    var dT = (24 * 3600) / MAX_LINES // Seconds between samples
+
+    // We must insert data like this to work with the template library's
     // super-effective context-aware escaping.
-    var stateHistory = JSON.parse(
-        "["
-        + {{.StateHistory.ToJSON}}
-        + "]"
-    )
+    var stateHistory = []
+    {{- range $index, $state := .StateHistory.AsSlice}}
+        stateHistory.push({ speed: {{$state.WindSpeed -}}, angle: {{$state.WindAngle -}}, time: {{$state.LastUpdated.String -}}})
+    {{- end}}
 
     for (var i = 0; i < stateHistory.length; i++) {
         lineQueue.push({
@@ -80,7 +82,9 @@
         })
         drawNextLine(false)
     }
-    updateBody(stateHistory[stateHistory.length - 1])
+    if (stateHistory.length > 0) {
+        updateBody(stateHistory[stateHistory.length - 1])
+    }
     </script>
 </body>
 

@@ -10,8 +10,8 @@ type StatePatch State
 
 func (patch *StatePatch) String() string {
 	return fmt.Sprintf("StatePatch{Speed:%.1f, Angle:%d }",
-		patch.windSpeed,
-		patch.windAngle)
+		patch.WindSpeed,
+		patch.WindAngle)
 }
 
 func MessageToPatchConverter(messageChannel <-chan MWVMessage, patchChannel chan<- StatePatch) {
@@ -23,9 +23,9 @@ func MessageToPatchConverter(messageChannel <-chan MWVMessage, patchChannel chan
 			log.Printf("[MessageToPatchConverter] Converting %v to patch…", message)
 		}
 
-		patch.windAngle = message.dir
-		patch.windSpeed = message.spd
-		patch.lastUpdated = time.Now()
+		patch.WindAngle = message.dir
+		patch.WindSpeed = message.spd
+		patch.LastUpdated = MyTime(time.Now())
 
 		if flagVerbose {
 			log.Printf("[MessageToPatchConverter] Sending patch %v on patch channel…", patch)

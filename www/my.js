@@ -1,11 +1,16 @@
+
+// These are set in the HTML template:
+//var MAX_LINES = ??
+//var dT
+
 function refresh() {
     var xhr = new XMLHttpRequest();
     xhr.open("GET", "/json?wait");
     xhr.onload = function(response) {
         refreshIntervalId = setTimeout(refresh, 500)
-        
+
         var state = JSON.parse(response.target.response)
-        console.log(state)
+        console.log(state, response)
 
         updateBody(state)
     }
@@ -17,7 +22,7 @@ function refresh() {
         console.log("xhr:ontimeout", a1, a2)
         refreshIntervalId = setTimeout(refresh, 10)
     }
-    xhr.timeout = 60 * 1000
+    xhr.timeout = 1000 * dT * 1.2
     xhr.send();
     return xhr;
 }
@@ -67,19 +72,27 @@ function makeLine(speed, angle) {
 
     return line
 }
-
+var svgGraph = null
+var graphTimeIndicator = null
 function drawNextLine(doStyleLines) {
     if (lineQueue.length > 0) {
+        if (svgGraph === null || graphTimeIndicator === null) {
+            svgGraph = document.getElementById("fancyWindGraph")
+            graphTimeIndicator = document.getElementById("graphTimeIndicator")
+        }
+
         if(doStyleLines !== false){
             styleLines()
         }
 
         var line = lineQueue.shift()
 
-        var svgGraph = document.getElementById("fancyWindGraph")
         svgGraph.append(line.element)
 
-        var graphTimeIndicator = document.getElementById("graphTimeIndicator")
+        if (svgGraph.children.length > MAX_LINES) {
+            svgGraph.children[0].remove()
+        }
+
         graphTimeIndicator.innerHTML = line.time
     }
 }
@@ -89,13 +102,13 @@ function styleLines() {
     var lines = fancyWindGraph.getElementsByTagName("line")
     // i=1 to skip first line that starts center
     for (var i = 1; i < lines.length; i++) {
-        if (i < 1000) {
+        if (i < MAX_LINES) {
             var progress = (lines.length - i) / lines.length
-            var colorFactor = theFormula(progress)
-            var r = 128 + (96 * (progress))
-            var g = 128 + (96 * (progress))
-            var b = 256 - (96 * (progress))
-            var a = 1 - Math.pow(progress, 0.05)
+            var colorFactor = 1 - theFormula(progress)
+            var r = 128 + (96 * (colorFactor))
+            var g = 128 + (96 * (colorFactor))
+            var b = 256 - (96 * (colorFactor))
+            var a = 1 - Math.pow(progress, 0.05) + 0.3
             lines[i].setAttribute("stroke", "rgba(" + r + "," + g + "," + b + ", " + a + ")")
         } else {
             lines[i].remove()
@@ -104,12 +117,12 @@ function styleLines() {
 }
 
 function theFormula(x) {
-    //return Math.pow((1 - Math.log10(x)) / 2, 4)
-    return Math.pow(x, 0.75)
+    return Math.pow(Math.log10(x), 4)
+    //return Math.pow(x, 0.3)
 }
 
 var refreshIntervalId = setTimeout(refresh, 1000)
-var drawNextLineIntervalId = setInterval(drawNextLine, 5)
+var drawNextLineIntervalId = setInterval(drawNextLine, 25)
 
 function getDirectionText(angle) {
     if(angle < 0 + (22.5 / 2))
@@ -147,3 +160,21 @@ function getDirectionText(angle) {
     else
         return "nord"
 }
+
+/* For testing of the fancy graph.
+// Copy into JS console in browser dev tools:
+for(let i = 0; i < MAX_LINES; i++){
+    updateBody({
+        speed: (i / MAX_LINES)*25,
+        angle: (i/MAX_LINES * 2) * 360,
+        time: "testing"
+    })
+}
+for(let i = MAX_LINES; i >= 0; i--){
+    updateBody({
+        speed: (i / MAX_LINES)*25,
+        angle: 360 - (i/MAX_LINES * 2) * 360,
+        time: "testing"
+    })
+}
+*/

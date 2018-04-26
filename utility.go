@@ -5,23 +5,25 @@ import (
 	"time"
 )
 
-func SimpleTimeString(t time.Time) string {
+type MyTime time.Time
+
+func (t *MyTime) String() string {
 	var (
 		date           string
-		time           string
+		clockTime      string
 		unusedInt      int
 		timeZoneOffset string
 		timeZoneName   string
 	)
 
-	fmt.Sscanf(t.String(),
+	fmt.Sscanf(time.Time(*t).String(),
 		"%10s %8s.%d %s %s",
 		&date,
-		&time,
+		&clockTime,
 		&unusedInt,
 		&timeZoneOffset,
 		&timeZoneName)
 
 	return fmt.Sprintf("%s %s",
-		date, time)
+		date, clockTime)
 }
