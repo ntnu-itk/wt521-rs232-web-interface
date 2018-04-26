@@ -7,6 +7,10 @@ import (
 
 type MyTime time.Time
 
+func (mt *MyTime) Time() time.Time {
+	return time.Time(*mt)
+}
+
 func (t *MyTime) String() string {
 	var (
 		date           string
@@ -16,7 +20,7 @@ func (t *MyTime) String() string {
 		timeZoneName   string
 	)
 
-	fmt.Sscanf(time.Time(*t).String(),
+	fmt.Sscanf(t.Time().String(),
 		"%10s %8s.%d %s %s",
 		&date,
 		&clockTime,
