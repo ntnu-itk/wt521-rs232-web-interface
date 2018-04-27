@@ -9,7 +9,7 @@ import (
 type StatePatch State
 
 func (patch *StatePatch) String() string {
-	return fmt.Sprintf("StatePatch{Speed:%.1f, Angle:%d }",
+	return fmt.Sprintf("StatePatch{Speed:%.1f, Angle:%d}",
 		patch.WindSpeed,
 		patch.WindAngle)
 }
