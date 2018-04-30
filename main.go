@@ -5,8 +5,13 @@ import (
 	"log"
 )
 
+var flagEnableSerial bool
+var flagEnableReporting bool
+
 func main() {
 	flag.Parse()
+	flagEnableSerial = flagDevice != ""
+	flagEnableReporting = flagReportTo != ""
 
 	patchChannel := make(chan StatePatch, 0)
 	stateRequestChannel := make(chan *StateRequest, 0)
@@ -18,6 +23,9 @@ func main() {
 	go stateHistory.Maintain(currentStateChannel)
 
 	if flagEnableSerial {
+		if flagVerbose {
+			log.Println("[main] flagEnableSerial")
+		}
 		bytesChannel := make(chan byte, 0)
 		go SerialReader(openSerialPort(), bytesChannel)
 
@@ -28,12 +36,16 @@ func main() {
 	}
 
 	if flagEnableProxy {
-		log.Println("flagEnableProxy")
+		if flagVerbose {
+			log.Println("[main] flagEnableProxy")
+		}
 		ConfigureProxy(patchChannel)
 	}
 
 	if flagReportTo != "" {
-		log.Println("flagEnableReporting")
+		if flagVerbose {
+			log.Println("[main] flagReportTo")
+		}
 		go ReportTo(currentStateChannel)
 	} else {
 		log.Println(flagReportTo)

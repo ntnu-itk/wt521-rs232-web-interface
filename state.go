@@ -6,9 +6,9 @@ import (
 )
 
 type State struct {
-	WindAngle   WindAngle
-	WindSpeed   WindSpeed
-	LastUpdated time.Time
+	WindAngle   WindAngle `json:"angle"`
+	WindSpeed   WindSpeed `json:"speed"`
+	LastUpdated time.Time `json:"time"`
 }
 
 type StateRequest struct {

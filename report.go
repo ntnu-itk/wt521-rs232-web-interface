@@ -9,12 +9,9 @@ import (
 )
 
 var flagReportTo string
-var flagEnableReporting bool
 
 func init() {
 	flag.StringVar(&flagReportTo, "report-to", "", "URL to report new states to (e.g. http://localhost:8080). Empty value => no reporting")
-
-	flagEnableReporting = flagReportTo != ""
 }
 
 func ReportTo(stateChannel <-chan State) {
