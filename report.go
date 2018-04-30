@@ -26,6 +26,7 @@ func ReportTo(stateChannel <-chan State) {
 		reponse, err := http.PostForm(flagReportTo+"/report/json", data)
 		if err != nil {
 			log.Printf("[ReportTo] Error while reporting new state: %s", err)
+			continue
 		}
 		log.Printf("[ReportTo] Report's response status: %s", reponse.Status)
 	}
