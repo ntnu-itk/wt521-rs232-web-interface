@@ -20,7 +20,7 @@ func (t *MyTime) String() string {
 		timeZoneName   string
 	)
 
-	fmt.Sscanf(t.Time().String(),
+	fmt.Sscanf(t.String(),
 		"%10s %8s.%d %s %s",
 		&date,
 		&clockTime,

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"html/template"
@@ -134,14 +135,15 @@ func httpHandleJSON(w http.ResponseWriter,
 		state = <-stateRequest.reply
 	}
 
-	jsonString := fmt.Sprintf(`{
-    "speed": %.1f,
-    "angle": %d,
-    "time": "%s"
-}`,
-		state.WindSpeed,
-		state.WindAngle,
-		state.LastUpdated.String())
+	var jsonString string
+	jsonBytes, err := json.Marshal(state)
+	if err != nil {
+		log.Printf("[HttpServer] Could not marshal state: %s", err)
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return
+	} else {
+		jsonString = string(jsonBytes)
+	}
 
 	if flagVerbose {
 		log.Printf("[HttpServer] %s => serve JSON of %s", r.URL.Path, state.String())

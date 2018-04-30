@@ -25,7 +25,7 @@ func MessageToPatchConverter(messageChannel <-chan MWVMessage, patchChannel chan
 
 		patch.WindAngle = message.dir
 		patch.WindSpeed = message.spd
-		patch.LastUpdated = MyTime(time.Now())
+		patch.LastUpdated = time.Now()
 
 		if flagVerbose {
 			log.Printf("[MessageToPatchConverter] Sending patch %v on patch channel…", patch)

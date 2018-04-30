@@ -75,10 +75,10 @@ func TestStateApplyPatch(t *testing.T) {
 	originalState := State{
 		WindAngle:   42,
 		WindSpeed:   13.37,
-		LastUpdated: MyTime(time.Now())}
+		LastUpdated: time.Now()}
 
 	_bogusTime, _ := time.Parse("Mon Jan 2 15:04:05 -0700 MST 2006", "Mon Jan 2 15:04:05 -0700 MST 2006")
-	bogusTime := MyTime(_bogusTime)
+	bogusTime := _bogusTime
 	patch := StatePatch{
 		WindAngle:   64,
 		WindSpeed:   7.2,
@@ -89,7 +89,7 @@ func TestStateApplyPatch(t *testing.T) {
 	<-time.After(1 * time.Microsecond)
 
 	state.Apply(patch)
-	if !state.LastUpdated.Time().After(originalState.LastUpdated.Time()) {
+	if !state.LastUpdated.After(originalState.LastUpdated) {
 		t.Errorf("time was not updated")
 	}
 	if state.WindAngle != patch.WindAngle {
@@ -98,7 +98,7 @@ func TestStateApplyPatch(t *testing.T) {
 	if state.WindSpeed != patch.WindSpeed {
 		t.Error("wind angle not updated")
 	}
-	if state.LastUpdated.Time().Unix() == bogusTime.Time().Unix() {
+	if state.LastUpdated.Unix() == bogusTime.Unix() {
 		t.Error("patching should not use the patch's time")
 	}
 }

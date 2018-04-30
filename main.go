@@ -8,15 +8,7 @@ import (
 func main() {
 	flag.Parse()
 
-	bytesChannel := make(chan byte, 0)
-	go SerialReader(openSerialPort(), bytesChannel)
-
-	mwvMessageChannel := make(chan MWVMessage, 0)
-	go MWVMessageConinuousScan(bytesChannel, mwvMessageChannel)
-
 	patchChannel := make(chan StatePatch, 0)
-	go MessageToPatchConverter(mwvMessageChannel, patchChannel)
-
 	stateRequestChannel := make(chan *StateRequest, 0)
 	currentStateChannel := make(chan State, 0)
 
@@ -24,6 +16,28 @@ func main() {
 
 	stateHistory := NewStateHistory()
 	go stateHistory.Maintain(currentStateChannel)
+
+	if flagEnableSerial {
+		bytesChannel := make(chan byte, 0)
+		go SerialReader(openSerialPort(), bytesChannel)
+
+		mwvMessageChannel := make(chan MWVMessage, 0)
+		go MWVMessageConinuousScan(bytesChannel, mwvMessageChannel)
+
+		go MessageToPatchConverter(mwvMessageChannel, patchChannel)
+	}
+
+	if flagEnableProxy {
+		log.Println("flagEnableProxy")
+		ConfigureProxy(patchChannel)
+	}
+
+	if flagReportTo != "" {
+		log.Println("flagEnableReporting")
+		go ReportTo(currentStateChannel)
+	} else {
+		log.Println(flagReportTo)
+	}
 
 	err := HttpServer(stateRequestChannel, currentStateChannel, stateHistory)
 

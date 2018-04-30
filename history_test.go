@@ -53,7 +53,7 @@ func TestAcceptsStates(t *testing.T) {
 		state := State{
 			WindAngle:   WindAngle(2 * i),
 			WindSpeed:   WindSpeed(1.2 * float64(i)),
-			LastUpdated: MyTime(time.Now())}
+			LastUpdated: time.Now()}
 
 		select {
 		case stateChannel <- state:
@@ -72,11 +72,11 @@ func TestAsSlice(t *testing.T) {
 	stateChannel <- State{
 		WindAngle:   2,
 		WindSpeed:   3.4,
-		LastUpdated: MyTime(time.Now())}
+		LastUpdated: time.Now()}
 	stateChannel <- State{
 		WindAngle:   4,
 		WindSpeed:   5.6,
-		LastUpdated: MyTime(time.Now())}
+		LastUpdated: time.Now()}
 
 	<-time.After(time.Millisecond)
 	slice := history.AsSlice()
@@ -88,7 +88,7 @@ func TestAsSlice(t *testing.T) {
 	stateChannel <- State{
 		WindAngle:   6,
 		WindSpeed:   7.8,
-		LastUpdated: MyTime(time.Now())}
+		LastUpdated: time.Now()}
 
 	<-time.After(time.Millisecond)
 	slice = history.AsSlice()
