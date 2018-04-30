@@ -52,20 +52,17 @@ func (state *State) Apply(patch StatePatch) {
 	state.LastUpdated = time.Now()
 }
 
-func (state *State) ToJSON() string {
-	return fmt.Sprintf(`{
-    "speed": %.1f,
-    "angle": %d,
-    "time": "%s"
-}`,
-		state.WindSpeed,
-		state.WindAngle,
-		state.LastUpdated.String())
-}
-
 func (state *State) String() string {
 	return fmt.Sprintf("State{Speed:%.1f, Angle:%d, Updated:%s}",
 		state.WindSpeed,
 		state.WindAngle,
 		state.LastUpdated.String())
+}
+
+func (state *State) SimpleTime() string {
+	ret, err := state.LastUpdated.MarshalJSON()
+	if err != nil {
+		return "error"
+	}
+	return string(ret)
 }
