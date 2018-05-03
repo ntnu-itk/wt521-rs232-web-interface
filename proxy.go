@@ -5,6 +5,7 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"time"
 )
 
 var flagEnableProxy bool
@@ -26,7 +27,10 @@ func (ph *proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
 		log.Printf("[Proxy] Error parsing form: %s", err)
+		w.Write([]byte("Bad form data"))
+		return
 	}
+
 	jsonString := r.PostForm.Get("json")
 
 	if flagVerbose {
@@ -34,9 +38,18 @@ func (ph *proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var patch StatePatch
-	json.Unmarshal([]byte(jsonString), &patch)
+	err = json.Unmarshal([]byte(jsonString), &patch)
+	if err != nil {
+		w.Write([]byte("Bad JSON"))
+		return
+	}
 
-	ph.patchChannel <- patch
+	select {
+	case ph.patchChannel <- patch:
+	case <-time.After(time.Second):
+		log.Println("[Proxy] Patch channel not receiving patch; discarding")
+		w.Write([]byte("Internal error (patch not accepted)"))
+	}
 
 	w.Write([]byte("OK"))
 }
