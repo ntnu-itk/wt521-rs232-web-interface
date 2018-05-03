@@ -65,7 +65,7 @@ func (wa *WindAngle) parse(str string) error {
 
 	if n != 1 {
 		*wa = InvalidWindAngle
-		return NewError(fmt.Sprintf("Could not parse wind angle from string '%s'", str))
+		return fmt.Errorf("Could not parse wind angle from string '%s'", str)
 	}
 
 	*wa = *wa % 360
@@ -81,13 +81,13 @@ func (war *WindAngleReference) parse(str string) error {
 	n, err := fmt.Sscanf(str, "%1s", war)
 
 	if n != 1 {
-		return NewError(fmt.Sprintf("Could not parse wind angle reference from string '%s'", str))
+		return fmt.Errorf("Could not parse wind angle reference from string '%s'", str)
 	}
 
 	switch *war {
 	case Relative, True:
 	default:
-		err = NewError(fmt.Sprintf("Invalid angle reference '%s'", *war))
+		err = fmt.Errorf("Invalid angle reference '%s'", *war)
 		*war = InvalidWindAngleReference
 		return err
 	}
@@ -99,11 +99,11 @@ func (ws *WindSpeed) parse(str string) error {
 	n, err := fmt.Sscanf(str, "%f", ws)
 
 	if n != 1 {
-		return NewError(fmt.Sprintf("Could not parse wind speed from string '%s'", str))
+		return fmt.Errorf("Could not parse wind speed from string '%s'", str)
 	}
 
 	if *ws < 0.0 {
-		err = NewError(fmt.Sprintf("Parse('%s') resulted in a negative wind speed of %f", str, *ws))
+		err = fmt.Errorf("Parse('%s') resulted in a negative wind speed of %f", str, *ws)
 		*ws = InvalidWindSpeed
 		return err
 	}
@@ -115,13 +115,13 @@ func (wsu *WindSpeedUnit) parse(str string) error {
 	n, err := fmt.Sscanf(str, "%1s", wsu)
 
 	if n != 1 {
-		return NewError(fmt.Sprintf("Could not parse wind speed unit from string '%s'", str))
+		return fmt.Errorf("Could not parse wind speed unit from string '%s'", str)
 	}
 
 	switch *wsu {
 	case KilometersPerHour, MetersPerSecond, Knots:
 	default:
-		err = NewError(fmt.Sprintf("Parse('%s') => '%s': not a valid wind speed unit", str, *wsu))
+		err = fmt.Errorf("Parse('%s') => '%s': not a valid wind speed unit", str, *wsu)
 		*wsu = InvalidWindSpeedUnit
 		return err
 	}
@@ -133,13 +133,13 @@ func (mv *MessageValidity) parse(str string) error {
 	n, err := fmt.Sscanf(str, "%1s", mv)
 
 	if n != 1 {
-		return NewError(fmt.Sprintf("Could not parse message validity from string '%s'", str))
+		return fmt.Errorf("Could not parse message validity from string '%s'", str)
 	}
 
 	switch *mv {
 	case Valid, Invalid:
 	default:
-		err = NewError(fmt.Sprintf("Parse('%s') => '%s': not a valid message validity", str, *mv))
+		err = fmt.Errorf("Parse('%s') => '%s': not a valid message validity", str, *mv)
 		*mv = InvalidMessageValidity
 		return err
 	}
@@ -150,18 +150,18 @@ func (mv *MessageValidity) parse(str string) error {
 func (c *Checksum) parse(str string) error {
 	if len(str) != 2 {
 		*c = InvalidChecksum
-		return NewError(fmt.Sprintf("String too long or short to be a checksum (want 2 characters) '%s'", str))
+		return fmt.Errorf("String too long or short to be a checksum (want 2 characters) '%s'", str)
 	}
 
 	n, err := fmt.Sscanf(str, "%02X", c)
 
 	if n != 1 {
 		*c = InvalidChecksum
-		return NewError(fmt.Sprintf("Could not parse checksum byte from string '%s'", str))
+		return fmt.Errorf("Could not parse checksum byte from string '%s'", str)
 	}
 
 	if *c < 0x00 || *c > 0xFF {
-		err = NewError(fmt.Sprintf("Parse('%s') => '%X': not a valid message validity", str, *c))
+		err = fmt.Errorf("Parse('%s') => '%X': not a valid message validity", str, *c)
 		*c = InvalidChecksum
 		return err
 	}
@@ -183,7 +183,7 @@ func (msg *MWVMessage) parse(str string) (err error) {
 	fields := strings.Split(msg.source, ",")
 
 	if len(fields) != 6 {
-		return NewError(fmt.Sprintf("Not correct number of fields in MWV-message; want %d but got %d in string '%s'", 5, len(fields), str))
+		return fmt.Errorf("Not correct number of fields in MWV-message; want %d but got %d in string '%s'", 5, len(fields), str)
 	}
 
 	if fields[0] != "$WIMWV" {
@@ -209,7 +209,7 @@ func (msg *MWVMessage) parse(str string) (err error) {
 	msg.calculatedChecksum = checksumFromString(stringToChecksum)
 
 	if msg.calculatedChecksum != msg.chk {
-		return NewError(fmt.Sprintf("Parsed message could not be validated; checksum 0x%02X is not 0x%02X\n    %v", msg.chk, msg.calculatedChecksum, *msg))
+		return fmt.Errorf("Parsed message could not be validated; checksum 0x%02X is not 0x%02X\n    %v", msg.chk, msg.calculatedChecksum, *msg)
 	}
 
 	return
