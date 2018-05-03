@@ -83,7 +83,7 @@ func httpHandleRoot(w http.ResponseWriter,
 	mimeType := setMimeType(w, fileToServe)
 
 	if flagVerbose {
-		log.Printf("MIME type is %s", mimeType)
+		log.Printf("[HttpServer] MIME type is %s", mimeType)
 	}
 
 	if strings.Index(mimeType, "text/html") >= 0 {
@@ -100,7 +100,7 @@ func httpHandleRoot(w http.ResponseWriter,
 			err = t.ExecuteTemplate(w, "index.html", data)
 
 			if err != nil {
-				log.Printf("Error executing template: %s", err)
+				log.Printf("[HttpServer] Error executing template: %s", err)
 			}
 		}
 	} else {
