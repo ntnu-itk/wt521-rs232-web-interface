@@ -5,18 +5,15 @@ import (
 	"log"
 )
 
+var flagEnableSerial bool
+var flagEnableReporting bool
+
 func main() {
 	flag.Parse()
-
-	bytesChannel := make(chan byte, 0)
-	go SerialReader(openSerialPort(), bytesChannel)
-
-	mwvMessageChannel := make(chan MWVMessage, 0)
-	go MWVMessageConinuousScan(bytesChannel, mwvMessageChannel)
+	flagEnableSerial = flagDevice != ""
+	flagEnableReporting = flagReportTo != ""
 
 	patchChannel := make(chan StatePatch, 0)
-	go MessageToPatchConverter(mwvMessageChannel, patchChannel)
-
 	stateRequestChannel := make(chan *StateRequest, 0)
 	currentStateChannel := make(chan State, 0)
 
@@ -24,6 +21,35 @@ func main() {
 
 	stateHistory := NewStateHistory()
 	go stateHistory.Maintain(currentStateChannel)
+
+	if flagEnableSerial {
+		if flagVerbose {
+			log.Println("[main] flagEnableSerial")
+		}
+		bytesChannel := make(chan byte, 0)
+		go SerialReader(openSerialPort(), bytesChannel)
+
+		mwvMessageChannel := make(chan MWVMessage, 0)
+		go MWVMessageConinuousScan(bytesChannel, mwvMessageChannel)
+
+		go MessageToPatchConverter(mwvMessageChannel, patchChannel)
+	}
+
+	if flagEnableProxy {
+		if flagVerbose {
+			log.Println("[main] flagEnableProxy")
+		}
+		ConfigureProxy(patchChannel)
+	}
+
+	if flagReportTo != "" {
+		if flagVerbose {
+			log.Println("[main] flagReportTo")
+		}
+		go ReportTo(currentStateChannel)
+	} else {
+		log.Println(flagReportTo)
+	}
 
 	err := HttpServer(stateRequestChannel, currentStateChannel, stateHistory)
 

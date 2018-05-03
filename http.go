@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"html/template"
@@ -82,7 +83,7 @@ func httpHandleRoot(w http.ResponseWriter,
 	mimeType := setMimeType(w, fileToServe)
 
 	if flagVerbose {
-		log.Printf("MIME type is %s", mimeType)
+		log.Printf("[HttpServer] MIME type is %s", mimeType)
 	}
 
 	if strings.Index(mimeType, "text/html") >= 0 {
@@ -99,7 +100,7 @@ func httpHandleRoot(w http.ResponseWriter,
 			err = t.ExecuteTemplate(w, "index.html", data)
 
 			if err != nil {
-				log.Printf("Error executing template: %s", err)
+				log.Printf("[HttpServer] Error executing template: %s", err)
 			}
 		}
 	} else {
@@ -123,8 +124,8 @@ func httpHandleJSON(w http.ResponseWriter,
 			}
 			w.WriteHeader(http.StatusOK)
 			break
-		case <-time.After(time.Duration(flagPollTimeout) * time.Second):
-			log.Printf("[HttpServer] Long poll timed out after %d seconds, sending previous state", flagPollTimeout)
+		case <-time.After(time.Duration(flagPollTimeout) * time.Millisecond):
+			log.Printf("[HttpServer] Long poll timed out after %d milliseconds, sending previous state", flagPollTimeout)
 			w.WriteHeader(http.StatusNotModified)
 			break
 		}
@@ -134,14 +135,15 @@ func httpHandleJSON(w http.ResponseWriter,
 		state = <-stateRequest.reply
 	}
 
-	jsonString := fmt.Sprintf(`{
-    "speed": %.1f,
-    "angle": %d,
-    "time": "%s"
-}`,
-		state.WindSpeed,
-		state.WindAngle,
-		state.LastUpdated.String())
+	var jsonString string
+	jsonBytes, err := json.Marshal(state)
+	if err != nil {
+		log.Printf("[HttpServer] Could not marshal state: %s", err)
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return
+	} else {
+		jsonString = string(jsonBytes)
+	}
 
 	if flagVerbose {
 		log.Printf("[HttpServer] %s => serve JSON of %s", r.URL.Path, state.String())

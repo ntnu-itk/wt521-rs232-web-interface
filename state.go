@@ -6,9 +6,9 @@ import (
 )
 
 type State struct {
-	WindAngle   WindAngle
-	WindSpeed   WindSpeed
-	LastUpdated MyTime
+	WindAngle   WindAngle `json:"angle"`
+	WindSpeed   WindSpeed `json:"speed"`
+	LastUpdated time.Time `json:"time"`
 }
 
 type StateRequest struct {
@@ -49,7 +49,7 @@ func StateKeeper(
 func (state *State) Apply(patch StatePatch) {
 	state.WindSpeed = patch.WindSpeed
 	state.WindAngle = patch.WindAngle
-	state.LastUpdated = MyTime(time.Now())
+	state.LastUpdated = time.Now()
 }
 
 func (state *State) String() string {
@@ -57,4 +57,12 @@ func (state *State) String() string {
 		state.WindSpeed,
 		state.WindAngle,
 		state.LastUpdated.String())
+}
+
+func (state *State) SimpleTime() string {
+	ret, err := state.LastUpdated.MarshalJSON()
+	if err != nil {
+		return "error"
+	}
+	return string(ret)
 }

@@ -93,6 +93,11 @@ function drawNextLine(doStyleLines) {
             svgGraph.children[0].remove()
         }
 
+        line.time = line.time
+            .replace("T", " ")
+            .replace("\"", "")
+            .replace(/\..*$/, "")
+
         graphTimeIndicator.innerHTML = line.time
     }
 }

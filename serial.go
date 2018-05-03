@@ -11,7 +11,7 @@ var flagDevice string
 var flagBaud int
 
 func init() {
-	flag.StringVar(&flagDevice, "device", "/dev/ttyS0", "serial port to use")
+	flag.StringVar(&flagDevice, "device", "", "serial port to use (e.g. /dev/ttyS0)")
 	flag.IntVar(&flagBaud, "baud", 1200, "baud rate (WT521's factory default is 1200)")
 }
 

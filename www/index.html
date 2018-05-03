@@ -72,7 +72,7 @@
     // super-effective context-aware escaping.
     var stateHistory = []
     {{- range $index, $state := .StateHistory.AsSlice}}
-        stateHistory.push({ speed: {{$state.WindSpeed -}}, angle: {{$state.WindAngle -}}, time: {{$state.LastUpdated.String -}}})
+        stateHistory.push({ speed: {{$state.WindSpeed -}}, angle: {{$state.WindAngle -}}, time: {{$state.SimpleTime -}}})
     {{- end}}
 
     for (var i = 0; i < stateHistory.length; i++) {
