@@ -124,8 +124,8 @@ func httpHandleJSON(w http.ResponseWriter,
 			}
 			w.WriteHeader(http.StatusOK)
 			break
-		case <-time.After(time.Duration(flagPollTimeout) * time.Second):
-			log.Printf("[HttpServer] Long poll timed out after %d seconds, sending previous state", flagPollTimeout)
+		case <-time.After(time.Duration(flagPollTimeout) * time.Millisecond):
+			log.Printf("[HttpServer] Long poll timed out after %d milliseconds, sending previous state", flagPollTimeout)
 			w.WriteHeader(http.StatusNotModified)
 			break
 		}
