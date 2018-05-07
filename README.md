@@ -20,6 +20,18 @@ make
 ```sh
 ./wt521-rs232-web-interface -help
 ```
+### Proxy configuration
+```sh
+# Public side:
+./wt521-rs232-web-interface -proxy -port=8081
+
+# WT521 side:
+./wt521-rs232-web-interface -device=/dev/ttyS0 -report-to=http://localhost:8081
+
+# Now the WT521 side will send weather data over HTTP to the public side, so that
+# 1. the public side does not need to be directly connected to the WT521, and
+# 2. the WT521 side can be behind a firewall with only outbound network access
+```
 
 ## Credits
 Cheers to Wikimedia user [El Grafo](https://commons.wikimedia.org/wiki/User:El_Grafo) for making the [compass SVG](https://en.wiktionary.org/wiki/File:Compass-icon_bb_NEbE.svg) and for dedicating it to the public domain.
