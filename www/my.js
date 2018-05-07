@@ -5,7 +5,7 @@
 
 function refresh() {
     var xhr = new XMLHttpRequest();
-    xhr.open("GET", "/json?wait");
+    xhr.open("GET", "json?wait");
     xhr.onload = function(response) {
         refreshIntervalId = setTimeout(refresh, 500)
 
