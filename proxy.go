@@ -31,7 +31,7 @@ func (ph *proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jsonString := r.PostForm.Get("json")
+	jsonString := r.URL.Query().Get("json")
 
 	if flagVerbose {
 		log.Printf("[Proxy] Got JSON: %s", jsonString)
