@@ -33,5 +33,20 @@ make
 # 2. the WT521 side can be behind a firewall with only outbound network access
 ```
 
+## Apache proxy configuration
+If your web server is behind a firewall that does not let you open new ports you
+may wish to configure Apache as a proxy. To do so, add something like these
+lines to your site config file:
+
+```sh
+ProxyPass "/wt521/upload_new_picture.php" "!"
+ProxyPass "/wt521/picture.jpg" "!"
+# All requests under /wt521/ that does not match the lines above will be relayed to the program running on port 8081
+ProxyPass "/wt521/" http://localhost:8081/
+```
+
+With this configuration you would run your WT521-interfacing instance of the
+program with `-report-to=https://example.com/wt521`; not `-report-to=https://example.com:8081`.
+
 ## Credits
 Cheers to Wikimedia user [El Grafo](https://commons.wikimedia.org/wiki/User:El_Grafo) for making the [compass SVG](https://en.wiktionary.org/wiki/File:Compass-icon_bb_NEbE.svg) and for dedicating it to the public domain.
