@@ -1,7 +1,7 @@
-
 // These are set in the HTML template:
 //var MAX_LINES = ??
 //var dT
+var currentState = null
 
 function refresh() {
     var xhr = new XMLHttpRequest();
@@ -9,10 +9,18 @@ function refresh() {
     xhr.onload = function(response) {
         refreshIntervalId = setTimeout(refresh, 500)
 
-        var state = JSON.parse(response.target.response)
-        console.log(state, response)
+        console.log("Response.target:", response.target)
 
-        updateBody(state)
+        if (response.target.status === 200) {
+            var state = JSON.parse(response.target.response)
+            console.log("Parsed state:", state)
+            if (state !== null) {
+                currentState = state
+            }
+        }
+        if (currentState !== null) {
+            updateBody(currentState)
+        }
     }
     xhr.onerror = function(a1, a2) {
         console.log("xhr:onerror", a1, a2)
@@ -74,6 +82,7 @@ function makeLine(speed, angle) {
 }
 var svgGraph = null
 var graphTimeIndicator = null
+
 function drawNextLine(doStyleLines) {
     if (lineQueue.length > 0) {
         if (svgGraph === null || graphTimeIndicator === null) {
@@ -81,7 +90,7 @@ function drawNextLine(doStyleLines) {
             graphTimeIndicator = document.getElementById("graphTimeIndicator")
         }
 
-        if(doStyleLines !== false){
+        if (doStyleLines !== false) {
             styleLines()
         }
 
@@ -130,37 +139,37 @@ var refreshIntervalId = setTimeout(refresh, 1000)
 var drawNextLineIntervalId = setInterval(drawNextLine, 25)
 
 function getDirectionText(angle) {
-    if(angle < 0 + (22.5 / 2))
+    if (angle < 0 + (22.5 / 2))
         return "nord"
-    else if(angle < 22.5 + (22.5 / 2))
+    else if (angle < 22.5 + (22.5 / 2))
         return "nordnordøst"
-    else if(angle < 45 + (22.5 / 2))
+    else if (angle < 45 + (22.5 / 2))
         return "nordøst"
-    else if(angle < 67.5 + (22.5 / 2))
+    else if (angle < 67.5 + (22.5 / 2))
         return "østnordøst"
-    else if(angle < 90 + (22.5 / 2))
+    else if (angle < 90 + (22.5 / 2))
         return "øst"
-    else if(angle < 112.5 + (22.5 / 2))
+    else if (angle < 112.5 + (22.5 / 2))
         return "østsørøst"
-    else if(angle < 135 + (22.5 / 2))
+    else if (angle < 135 + (22.5 / 2))
         return "sørøst"
-    else if(angle < 157.5 + (22.5 / 2))
+    else if (angle < 157.5 + (22.5 / 2))
         return "sørsørøst"
-    else if(angle < 180 + (22.5 / 2))
+    else if (angle < 180 + (22.5 / 2))
         return "sør"
-    else if(angle < 202.5 + (22.5 / 2))
+    else if (angle < 202.5 + (22.5 / 2))
         return "sørsørvest"
-    else if(angle < 225 + (22.5 / 2))
+    else if (angle < 225 + (22.5 / 2))
         return "sørvest"
-    else if(angle < 247.5 + (22.5 / 2))
+    else if (angle < 247.5 + (22.5 / 2))
         return "vestsørvest"
-    else if(angle < 270 + (22.5 / 2))
+    else if (angle < 270 + (22.5 / 2))
         return "vest"
-    else if(angle < 292.5 + (22.5 / 2))
+    else if (angle < 292.5 + (22.5 / 2))
         return "vestnordvest"
-    else if(angle < 315 + (22.5 / 2))
+    else if (angle < 315 + (22.5 / 2))
         return "nordvest"
-    else if(angle < 337.5 + (22.5 / 2))
+    else if (angle < 337.5 + (22.5 / 2))
         return "nordnordvest"
     else
         return "nord"
