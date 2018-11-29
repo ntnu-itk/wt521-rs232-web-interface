@@ -20,6 +20,7 @@ const (
 
 var flagPort int
 var flagCameraUrl string
+var flagCameraHref string
 var flagInterval float64
 var flagDaysOfHistory float64
 
@@ -32,6 +33,8 @@ func init() {
 		"port to open for HTTP server")
 	flag.StringVar(&flagCameraUrl, "camera-url", "https://www.vegvesen.no/public/webkamera/kamera?id=110409",
 		"URL to use for the src attribute of the image in the top left corner")
+	flag.StringVar(&flagCameraHref, "camera-href", "",
+		"HREF of the link of the image in the top left corner; empty value => use camera-url")
 	flag.Float64Var(&flagInterval, "interval", 3,
 		"should be the same as the MWV interval of the WT521, see setup.md")
 	flag.Float64Var(&flagDaysOfHistory, "history-days", 1,
@@ -44,6 +47,7 @@ func init() {
 type tplData struct {
 	StateHistory *StateHistory
 	WebcamURL    string
+	WebcamHref   string
 	MaxLines     int
 }
 
@@ -87,9 +91,17 @@ func httpHandleRoot(w http.ResponseWriter,
 	}
 
 	if strings.Index(mimeType, "text/html") >= 0 {
+		var tplCameraHref string
+		if flagCameraHref == "" {
+			tplCameraHref = flagCameraUrl
+		} else {
+			tplCameraHref = flagCameraHref
+		}
+
 		data := tplData{
 			StateHistory: stateHistory,
 			WebcamURL:    flagCameraUrl,
+			WebcamHref:   tplCameraHref,
 			MaxLines:     flagHistorySamples}
 
 		t, err := template.ParseGlob("www/*.html")
